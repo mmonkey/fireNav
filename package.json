@@ -1,0 +1,29 @@
+{
+  "name": "fireNav",
+  "version": "0.1.0",
+  "description": "a responsive navigation framework",
+  "main": "gulpfile.js",
+  "dependencies": {},
+  "devDependencies": {
+    "browser-sync": "^1.8.2",
+    "gulp": "^3.8.10",
+    "gulp-jshint": "^1.9.0",
+    "gulp-rename": "^1.2.0",
+    "gulp-ruby-sass": "^0.7.1",
+    "gulp-uglify": "^1.0.2",
+    "gulp-util": "^3.0.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmonkey/fireNav"
+  },
+  "author": "CJ O'Hara and Tyler Fowle",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mmonkey/fireNav/issues"
+  },
+  "homepage": "https://github.com/mmonkey/fireNav"
+}
