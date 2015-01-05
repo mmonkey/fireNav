@@ -4,16 +4,61 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>fireNav - Development Test</title>
+	
+	<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,600,700' rel='stylesheet' type='text/css'>
+	<link rel="stylesheet" href="css/stylesheet.css">
 
 	<script src="vendor/js/velocity.min.js"></script>
 	<script src="js/fireNav.js"></script>
 </head>
 <body>
 
-	<script type="text/javascript">
-		var nav = new fireNav({ selector: "#fireNav2" });
-		console.log(nav);
+	<div class="wrap">
 
+		<nav id="fireNav">
+			
+			<div class="headline-title">fireNav.js</div>
+
+			<ul>
+				<li><a href="">Home</a></li>
+				<li><a href="">About</a>
+					<ul>
+						<li><a href="">History</a></li>
+						<li><a href="">Locations</a></li>
+						<li><a href="">Our People</a></li>
+					</ul>
+				</li>
+				<li><a href="">Products</a>
+					<ul>
+						<li><a href="">Mac</a>
+							<ul>
+								<li><a href="">Product 1</a></li>
+								<li><a href="">Product 2</a></li>
+								<li><a href="">Product 3</a></li>
+								<li><a href="">Product 4</a></li>
+							</ul>
+						</li>
+						<li><a href="">PC</a></li>
+						<li><a href="">iOS</a></li>
+						<li><a href="">Android</a></li>
+					</ul>
+				</li>
+				<li><a href="">Contact Us</a></li>
+			</ul>
+		</nav >
+
+		
+		<h2>Title</h2>
+		<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Consectetur odit quisquam, illum est vitae qui fuga debitis laudantium expedita, quam omnis ipsa libero laborum officia necessitatibus quibusdam. Modi rerum dolorem a ipsum inventore praesentium accusamus doloremque autem at dignissimos, ut fuga vitae magnam assumenda aperiam nostrum eum labore deserunt. Ad beatae repellendus porro commodi excepturi odio, incidunt est neque rerum perferendis illum, temporibus dolorem consectetur ex id quasi suscipit deleniti unde adipisci dicta ducimus vel a quisquam eveniet? Unde, vel!</p>
+
+		<h3>Title 2</h3>
+		<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Culpa, quisquam magnam? Numquam enim dolores consequatur tempore impedit ipsum ullam doloribus rerum animi veritatis, distinctio consectetur similique expedita veniam optio nulla ex quae iure asperiores voluptate amet harum ipsa non repellat. Ab aspernatur, eos cumque eius omnis iure blanditiis nemo natus molestias vitae placeat itaque nisi similique voluptatibus odit culpa. Quia.</p>
+
+	</div><!-- end wrap -->
+
+	<script type="text/javascript">
+		var nav = new fireNav({ container: "#fireNav" });
+		console.log(nav);
 	</script>
 	
 </body>

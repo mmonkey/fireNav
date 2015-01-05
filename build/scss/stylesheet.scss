@@ -1,0 +1,96 @@
+@import "_normalize";
+
+body {
+	font-family: 'Open Sans', sans-serif;
+	background: #ffc887;
+}
+
+.wrap {
+	width: 100%;
+	max-width: 1028px;
+	margin: 0 auto;
+	padding: 0px 24px 24px 24px;
+	background: lighten(#ffc887, 20%);
+}
+
+.headline-title {
+	width: 200px;
+	float: left;
+	font-size: 24px;
+	font-weight: bold;
+	padding-top: 28px;
+	color: #cc5400;
+}
+
+.clearfix {
+	&:after {
+		content: "";
+		display: table;
+		clear: both;
+	}
+}
+
+$dropdown-width: 150px;
+
+nav {
+	width: 100%;
+	@extend .clearfix;
+
+	// Level One
+	ul {
+		display: block;
+		float: left;
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	li {
+		display: inline-block;
+		position: relative;
+
+		a {
+			display: block;
+			padding: 36px 12px 6px 12px;
+			font-size: 18px;
+			font-weight: 600;
+			color: #3d3d3d;
+			text-decoration: none;
+		}
+
+		&:hover {
+			a {
+				background: rgba(#000, 0.6);
+				color: white;
+			}
+		}
+	}
+	
+	// Level Two
+	ul ul {
+		display: none;
+		position: absolute;
+		left: 0;
+		width: $dropdown-width;
+
+		li {
+			display: block;
+
+			a {
+				padding: 6px 12px;
+			}
+		}
+	}
+
+	// Level Three
+	ul ul ul {
+		left: $dropdown-width;
+		top: 0;
+	}
+
+	li:hover {
+		> ul {
+			display: block;
+		}
+	}
+}
