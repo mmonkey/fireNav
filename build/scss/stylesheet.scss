@@ -7,10 +7,8 @@ body {
 
 .wrap {
 	width: 100%;
-	max-width: 1028px;
+	max-width: 1024px;
 	margin: 0 auto;
-	padding: 0px 24px 24px 24px;
-	background: lighten(#ffc887, 20%);
 }
 
 .headline-title {
@@ -32,7 +30,7 @@ body {
 
 $dropdown-width: 150px;
 
-nav {
+nav.dropdown {
 	width: 100%;
 	@extend .clearfix;
 
