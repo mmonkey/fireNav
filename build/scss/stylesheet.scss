@@ -92,3 +92,15 @@ nav.dropdown {
 		}
 	}
 }
+
+#jumpNav {
+	position: fixed;
+	top: 50%;
+	right: 0;
+
+	.jump-nav-active {
+		a {
+			font-weight: bold;
+		}
+	}
+}

@@ -23,7 +23,7 @@
 		if (elem === null || typeof(elem) == 'undefined') return;
 		if (elem.addEventListener) {
 			elem.addEventListener(type, eventHandle, false);
-		} else if (elem.attachEven ) {
+		} else if (elem.attachEvent) {
 			elem.attachEvent("on" + type, eventHandle);
 		} else {
 			elem["on"+type]=eventHandle;
@@ -65,14 +65,19 @@
 	 */
 	FireNav.jump = function(opts) {
 		var defaults = {
+			appendTo: 'body',
 			sectionClass: ".section",
 			position: "right",
-			speed: 800
+			speed: 800,
+			offset: 0
 		};
 
 		var options = extend(opts, defaults);
 		var sections = document.querySelectorAll(options.sectionClass);
-		var nav;
+		var nav = {};
+		var jumpLinks = [];
+		var activeHashNode = null;
+		var watchScroll = true;
 
 		function constructNav() {
 			nav = document.createElement('NAV');
@@ -86,10 +91,15 @@
 					a.innerText = sections[i].dataset.jumpName;
 					li.dataset.jumpClass = sections[i].dataset.jumpClass;
 					li.appendChild(a);
+					jumpLinks.push(li);
 					nav.appendChild(li);
 				}
 			}
-			document.body.appendChild(nav);
+			if(document.contains(document.querySelector(options.appendTo))) {
+				document.querySelector(options.appendTo).appendChild(nav);
+			} else {
+				document.body.appendChild(nav);
+			}
 		}
 
 		function getZoomAmount() {
@@ -131,27 +141,13 @@
 			return node.getBoundingClientRect().left;
 		}
 
-		function init() {
-			constructNav();
-
-			// Create event listens on the jumpnav
-			for(var i = 0; i < nav.getElementsByTagName('a').length; i++) {
-				listen(nav.getElementsByTagName('a')[i], 'click', function(e) {
-					e.preventDefault();
-					V(document.querySelector(e.target.hash), "scroll", {duration: options.speed, easing: "ease-in-out"});
-				});
-			}
-		}
-
-		init();
-
 		// Returns the active hash node based on nodes scrollTop
 		function getActiveHashNode(hashNodes) {
 			var result = null;
 			var max = -1;
 			for(var i = 0; i < hashNodes.length; i++) {
 				var elemY = getScrollTop(hashNodes[i]);
-				if(elemY <= 0) {
+				if(elemY <= options.offset) {
 					if(elemY > max || max === -1) {
 						max = elemY;
 						result = hashNodes[i];
@@ -161,9 +157,85 @@
 			return result;
 		}
 
+		// Updates the active hash node based on nodes scrollTop
+		function updateActiveHashNode() {
+			if(activeHashNode !== getActiveHashNode(sections)) {
+				var lastActiveHashNode = activeHashNode;
+				activeHashNode = getActiveHashNode(sections);
+				updateActiveLinkClass({
+					prevNode: (lastActiveHashNode) ? lastActiveHashNode.id : null,
+					nextNode: (activeHashNode) ? activeHashNode.id : null,
+					className: 'jump-nav-active'
+				});
+			}
+		}
+
+		// Adds class to active link, removes class from previous active link
+		function updateActiveLinkClass(opts) {
+			for(var i = 0; i < jumpLinks.length; i++) {
+				var link = jumpLinks[i].getElementsByTagName('A')[0];
+
+				if(opts.prevNode) {
+					if(link.hash === '#' + opts.prevNode) {
+						removeClass(jumpLinks[i], opts.className);
+					}
+				}
+
+				if(opts.nextNode) {
+					if(link.hash === '#' + opts.nextNode) {
+						addClass(jumpLinks[i], opts.className);
+					}
+				}
+			}
+		}
+
+		// Smooth scroll links on click events, add active class to clicked jump link
+		function addJumpLinkClickEvent(node) {
+			listen(node, 'click', function(e) {
+					e.preventDefault();
+					var section = document.querySelector(e.target.hash);
+					V(section, "scroll", { duration: options.speed, easing: "ease-in-out", offset: options.offset,
+						complete: function() {
+							watchScroll = false;
+
+							if(activeHashNode !== section) {
+								var lastActiveHashNode = activeHashNode;
+								activeHashNode = section;
+
+								updateActiveLinkClass({
+									prevNode: (lastActiveHashNode) ? lastActiveHashNode.id : null,
+									nextNode: (activeHashNode) ? activeHashNode.id : null,
+									className: 'jump-nav-active'
+								});
+							}
+
+							// makes up for Velocities built in animation delay
+							setTimeout(function() {
+								watchScroll = true;
+							}, 20);
+
+						}
+					});
+				
+				});
+		}
+
+		this.init = function() {
+			constructNav();
+
+			// Create event listeners on the jumpnav
+			for(var i = 0; i < nav.getElementsByTagName('a').length; i++) {
+				var link = nav.getElementsByTagName('a')[i];
+				addJumpLinkClickEvent(link);
+			}
+			updateActiveHashNode();
+		}
+
 		listen(window, 'scroll', function(e) {
-			var activeHashNode = getActiveHashNode(sections);
-			window.location.hash = activeHashNode.id;
+			if(watchScroll) {
+				updateActiveHashNode();
+				//window.location.hash = activeHashNode.id;
+			}
 		});
 
 		listen(window, 'resize', function(e) {
