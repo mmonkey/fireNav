@@ -18,15 +18,54 @@
 		return options;
 	}
 
-	// Creates an event listener
-	function listen(elem, type, eventHandle) {
-		if (elem === null || typeof(elem) == 'undefined') return;
-		if (elem.addEventListener) {
-			elem.addEventListener(type, eventHandle, false);
-		} else if (elem.attachEvent) {
-			elem.attachEvent("on" + type, eventHandle);
-		} else {
-			elem["on"+type]=eventHandle;
+	// Custom events will bind to these htmlEvents in IE < 9
+	var htmlEvents = {
+		onload: 1, onunload: 1, onblur: 1, onchange: 1, onfocus: 1, onreset: 1, onselect: 1,
+		onsubmit: 1, onabort: 1, onkeydown: 1, onkeypress: 1, onkeyup: 1, onclick: 1, ondblclick: 1,
+		onmousedown: 1, onmousemove: 1, onmouseout: 1, onmouseover: 1, onmouseup: 1
+	};
+
+	// Create and trigger an event
+	function trigger(el, eventName){
+		var event;
+		if(document.createEvent){
+			event = document.createEvent('HTMLEvents');
+			event.initEvent(eventName,true,true);
+		}else if(document.createEventObject){// IE < 9
+			event = document.createEventObject();
+			event.eventType = eventName;
+		}
+		event.eventName = eventName;
+		if(el.dispatchEvent){
+			el.dispatchEvent(event);
+		}else if(el.fireEvent && htmlEvents['on'+eventName]){// IE < 9
+			el.fireEvent('on'+event.eventType,event); // can trigger only real event (e.g. 'click')
+		}else if(el[eventName]){
+			el[eventName]();
+		}else if(el['on'+eventName]){
+			el['on'+eventName]();
+		}
+	}
+
+	// Event listener for built-in and custom events
+	function listen(el, type, handler){
+		if(el.listenListener){
+			el.listenListener(type,handler,false);
+		}else if(el.attachEvent && htmlEvents['on'+type]){// IE < 9
+			el.attachEvent('on'+type,handler);
+		}else{
+			el['on'+type]=handler;
+		}
+	}
+
+	// Remove event listener for built-in and custom events
+	function removeEvent(el, type, handler){
+		if(el.removeventListener){
+			el.removeEventListener(type,handler,false);
+		}else if(el.detachEvent && htmlEvents['on'+type]){// IE < 9
+			el.detachEvent('on'+type,handler);
+		}else{
+			el['on'+type]=null;
 		}
 	}
 
@@ -67,7 +106,6 @@
 		var defaults = {
 			appendTo: 'body',
 			sectionClass: ".section",
-			position: "right",
 			speed: 800,
 			offset: 0
 		};
@@ -192,8 +230,10 @@
 		// Smooth scroll links on click events, add active class to clicked jump link
 		function addJumpLinkClickEvent(node) {
 			listen(node, 'click', function(e) {
-					e.preventDefault();
-					var section = document.querySelector(e.target.hash);
+					if (e.preventDefault) e.preventDefault();
+					else e.returnValue = false;
+					var target = (e.target) ? e.target : e.srcElement;
+					var section = document.querySelector(target.hash);
 					V(section, "scroll", { duration: options.speed, easing: "ease-in-out", offset: options.offset,
 						complete: function() {
 							watchScroll = false;
@@ -229,7 +269,7 @@
 				addJumpLinkClickEvent(link);
 			}
 			updateActiveHashNode();
-		}
+		};
 
 		listen(window, 'scroll', function(e) {
 			if(watchScroll) {
