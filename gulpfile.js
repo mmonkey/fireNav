@@ -28,13 +28,20 @@ gulp.task('doc-sass', function() {
 });
 
 gulp.task('lint', function() {
-	return gulp.src(['build/js/*.js', '!build/js/**/*.min.js'])
+	return gulp.src(['build/js/*.js', '!build/js/**/*.min.js', '!build/js/**/*.dev.js'])
 		.pipe(jshint())
 		.pipe(jshint.reporter('default'));
 });
 
+gulp.task('browserify', function() {
+	gulp.src(['build/js/*.js', '!build/js/**/*.min.js', '!build/js/**/*.dev.js'])
+		.pipe(browserify({insertGlobals: true}))
+		.pipe(rename({suffix: '.dev'}))
+		.pipe(gulp.dest('build/js'));
+});
+
 gulp.task('compress', function() {
-	gulp.src(['build/js/*.js', '!build/js/**/*.min.js'])
+	gulp.src(['build/js/*.js', '!build/js/**/*.min.js', '!build/js/**/*.dev.js'])
 		.pipe(browserify({insertGlobals : true}))
 		.pipe(uglify().on('error', util.log))
 		.pipe(rename({suffix: '.min'}))
@@ -54,5 +61,5 @@ gulp.task('default', ['browser-sync'], function() {
 	gulp.watch('build/scss/**/*.scss', ['sass']);
 	gulp.watch('docs/scss/**/*.scss', ['doc-sass']);
 	gulp.watch('**/*.html', browserSync.reload);
-	gulp.watch('build/js/*.js', ['lint', 'compress', browserSync.reload]);
+	gulp.watch(['build/js/*.js', '!build/js/**/*.dev.js'], ['lint', 'browserify', 'compress', browserSync.reload]);
 });
