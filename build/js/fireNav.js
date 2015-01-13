@@ -1,5 +1,7 @@
 /* fireNav (0.1.0). (C) 2014 CJ O'Hara and Tyler Fowle. MIT @license: en.wikipedia.org/wiki/MIT_License */
-(function (window, document) {
+var Velocity = require('velocity-animate');
+
+(function () {
 
 	FireNav = function() {
 	};
@@ -284,4 +286,4 @@
 
 	window.FireNav = FireNav;
 
-})(window, document);
+})();

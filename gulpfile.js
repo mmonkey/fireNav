@@ -4,6 +4,7 @@ var gulp = require('gulp'),
 	rename = require('gulp-rename'),
 	uglify = require('gulp-uglify'),
 	util = require('gulp-util'),
+	browserify = require('gulp-browserify'),
 	browserSync = require('browser-sync');
 
 gulp.task('sass', function() {
@@ -27,24 +28,14 @@ gulp.task('doc-sass', function() {
 });
 
 gulp.task('lint', function() {
-	return gulp.src(['build/js/*.js', '!build/js/**/*.min.js', 'docs/js/*.js', '!docs/js/**/*.min.js'])
+	return gulp.src(['build/js/*.js', '!build/js/**/*.min.js'])
 		.pipe(jshint())
 		.pipe(jshint.reporter('default'));
 });
 
-gulp.task('beautify', function() {
-	gulp.src(['build/js/*.js', '!build/js/**/*.min.js'])
-		.pipe(uglify({
-			output: {
-				beautify: true,
-				comments: true
-			}
-		}))
-		.pipe(gulp.dest('dist'));
-});
-
 gulp.task('compress', function() {
 	gulp.src(['build/js/*.js', '!build/js/**/*.min.js'])
+		.pipe(browserify({insertGlobals : true}))
 		.pipe(uglify().on('error', util.log))
 		.pipe(rename({suffix: '.min'}))
 		.pipe(gulp.dest('dist'));
@@ -63,5 +54,5 @@ gulp.task('default', ['browser-sync'], function() {
 	gulp.watch('build/scss/**/*.scss', ['sass']);
 	gulp.watch('docs/scss/**/*.scss', ['doc-sass']);
 	gulp.watch('**/*.html', browserSync.reload);
-	gulp.watch('build/js/*.js', ['lint', 'beautify', 'compress', browserSync.reload]);
+	gulp.watch('build/js/*.js', ['lint', 'compress', browserSync.reload]);
 });
