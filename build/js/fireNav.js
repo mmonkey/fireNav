@@ -282,6 +282,21 @@
 		});
 	};
 
+	/**
+	 * FireNav.tab function
+	 * Adds a tabbed menu
+	 */
+	FireNav.tab = function(opts) {
+		var defaults = {
+			menu: '#fireTabs',
+			tabClass: '.tab'
+			loadHash: false
+		}
+
+		var options = extend(opts, defaults);
+		var tabs = document.querySelectorAll(options.tabClass);
+	};
+
 	window.FireNav = FireNav;
 
 })(window, document);
