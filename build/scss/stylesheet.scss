@@ -20,6 +20,11 @@ body {
 	color: #cc5400;
 }
 
+.firenav-tab .headline-title {
+	padding-top: 16px;
+	padding-bottom: 16px;
+}
+
 .clearfix {
 	&:after {
 		content: "";
@@ -106,6 +111,10 @@ nav.dropdown {
 }
 
 #tab-menu {
+	display: block;
+	background: white;
+	border-bottom: 2px solid CornflowerBlue;
+
 	ul {
 		list-style: none;
 		margin: 0;
@@ -115,12 +124,21 @@ nav.dropdown {
 		display: inline-block;
 		a {
 			display: block;
-			padding: 4px 12px;
+			padding: 6px 20px;
 			background: white;
+			color: CornflowerBlue;
+			text-decoration: none;
 		}
 
-		&:hover a {
+		&:hover a, &.tab-link-active a{
 			background: CornflowerBlue;
+			color: white;
 		}
 	}
+}
+
+.tab {
+	display: block;
+	background: white;
+	padding: 8px 16px;
 }

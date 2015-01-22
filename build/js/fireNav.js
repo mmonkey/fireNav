@@ -100,6 +100,39 @@ var Velocity = require('velocity-animate');
 		return result;
 	}
 
+	// Returns the index of a node amongst that node's siblings
+	function getNodeIndex(node) {
+		var index = 0;
+		if(node !== null) {
+			while ( (node = node.previousSibling) ) {
+				if (node.nodeType != 3 || !/^\s*$/.test(node.data)) {
+					index++;
+				}
+			}
+			return index;
+		} else {
+			return -1;
+		}
+	}
+
+	// Shim for element.dataset
+	function getData(node){
+		if(node.dataset) {
+			return node.dataset;
+		} else {
+			var attributes = node.attributes;
+			var simulatedDataset = {};
+			for (var i = attributes.length; i--; ){
+				if (/^data-.*/.test(attributes[i].name)) {
+					var key = attributes[i].name.replace('data-', '');
+					var value = node.getAttribute(attributes[i].name);
+					simulatedDataset[key] = value;
+				}
+			}
+			return simulatedDataset;
+		}
+	}
+
 	/**
 	 * FireNav.jump function
 	 * Adds a smart jump menu that appends to the body
@@ -298,7 +331,8 @@ var Velocity = require('velocity-animate');
 		var options = extend(opts, defaults);
 		var tabs = document.querySelectorAll(options.tabClass);
 		var menu = document.querySelectorAll(options.tabMenu)[0];
-		var currentTab = null;
+		var nav = [];
+		var currentIndex = -1;
 
 		function cleanString(string) {
 			return string.toLowerCase().replace(/^\s+|\s+$/g, '').replace(/&#{0,1}[a-z0-9]+;/ig, '').replace(/[^\w\s]/gi, '').replace(/\s+/g, '-');
@@ -311,37 +345,53 @@ var Velocity = require('velocity-animate');
 				for(var i = 0; i < tabs.length; i++) {
 					var li = document.createElement('LI');
 					var a = document.createElement('A');
-					var title = tabs[i].dataset.tab;
+					var title = getData(tabs[i]).tab;
 					var clean = cleanString(title);
 					tabs[i].id = clean;
 					a.text = title;
 					a.href = '#' + clean;
-					a.dataset.tabLink = clean;
 					li.appendChild(a);
+					nav.push(li);
 					ul.appendChild(li);
 				}
 			}
 			menu.appendChild(ul);
 		}
 
-		function getActiveTab() {
-		}
-
 		function updateActiveTab(pos) {
-			if(currentTab !== null) {
-
+			if(currentIndex > -1) {
+				tabs[currentIndex].style.display = 'none';
+				removeClass(tabs[currentIndex], 'tab-active');
+				removeClass(nav[currentIndex], 'tab-link-active');
 			}
-			addClass(menu[pos], 'tab-link-active');
+			tabs[pos].style.display = 'block';
 			addClass(tabs[pos], 'tab-active');
+			addClass(nav[pos], 'tab-link-active');
+			currentIndex = pos;
 		}
 
 		function addTabLinkClickEvent(link) {
 			listen(link, 'click', function(e) {
 				if (e.preventDefault) e.preventDefault();
 				else e.returnValue = false;
-				var target = link.hash;
-				console.log(target);
+				updateActiveTab(getNodeIndex(link.parentNode));
+				if(options.loadHash) {
+					if(history.replaceState) {
+						history.replaceState(undefined, undefined, link.hash);
+					} else if(window.location.replace) {
+						window.location.replace(link.hash);
+					}
+				}
 			});
+		}
+
+		function getActiveHashIndex(hash) {
+			for(var i = 0; i < tabs.length; i++) {
+				if(tabs[i].id === hash.replace('#', '')) {
+					return i;
+				}
+			}
+			return -1;
 		}
 
 		this.init = function() {
@@ -350,6 +400,18 @@ var Velocity = require('velocity-animate');
 			for(var i = 0; i < menu.getElementsByTagName('a').length; i++) {
 				var link = menu.getElementsByTagName('a')[i];
 				addTabLinkClickEvent(link);
+			}
+
+			// hide all tabs
+			for(i = 0; i < tabs.length; i++) {
+				tabs[i].style.display = 'none';
+			}
+
+			var activeIndex = getActiveHashIndex(window.location.hash);
+			if(options.loadHash && activeIndex > -1) {
+				updateActiveTab(activeIndex);
+			} else {
+				updateActiveTab(0);
 			}
 		};
 	};

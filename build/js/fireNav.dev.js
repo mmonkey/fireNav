@@ -102,6 +102,39 @@ var Velocity = require('velocity-animate');
 		return result;
 	}
 
+	// Returns the index of a node amongst that node's siblings
+	function getNodeIndex(node) {
+		var index = 0;
+		if(node !== null) {
+			while ( (node = node.previousSibling) ) {
+				if (node.nodeType != 3 || !/^\s*$/.test(node.data)) {
+					index++;
+				}
+			}
+			return index;
+		} else {
+			return -1;
+		}
+	}
+
+	// Shim for element.dataset
+	function getData(node){
+		if(node.dataset) {
+			return node.dataset;
+		} else {
+			var attributes = node.attributes;
+			var simulatedDataset = {};
+			for (var i = attributes.length; i--; ){
+				if (/^data-.*/.test(attributes[i].name)) {
+					var key = attributes[i].name.replace('data-', '');
+					var value = node.getAttribute(attributes[i].name);
+					simulatedDataset[key] = value;
+				}
+			}
+			return simulatedDataset;
+		}
+	}
+
 	/**
 	 * FireNav.jump function
 	 * Adds a smart jump menu that appends to the body
@@ -300,7 +333,8 @@ var Velocity = require('velocity-animate');
 		var options = extend(opts, defaults);
 		var tabs = document.querySelectorAll(options.tabClass);
 		var menu = document.querySelectorAll(options.tabMenu)[0];
-		var currentTab = null;
+		var nav = [];
+		var currentIndex = -1;
 
 		function cleanString(string) {
 			return string.toLowerCase().replace(/^\s+|\s+$/g, '').replace(/&#{0,1}[a-z0-9]+;/ig, '').replace(/[^\w\s]/gi, '').replace(/\s+/g, '-');
@@ -313,37 +347,53 @@ var Velocity = require('velocity-animate');
 				for(var i = 0; i < tabs.length; i++) {
 					var li = document.createElement('LI');
 					var a = document.createElement('A');
-					var title = tabs[i].dataset.tab;
+					var title = getData(tabs[i]).tab;
 					var clean = cleanString(title);
 					tabs[i].id = clean;
 					a.text = title;
 					a.href = '#' + clean;
-					a.dataset.tabLink = clean;
 					li.appendChild(a);
+					nav.push(li);
 					ul.appendChild(li);
 				}
 			}
 			menu.appendChild(ul);
 		}
 
-		function getActiveTab() {
-		}
-
 		function updateActiveTab(pos) {
-			if(currentTab !== null) {
-
+			if(currentIndex > -1) {
+				tabs[currentIndex].style.display = 'none';
+				removeClass(tabs[currentIndex], 'tab-active');
+				removeClass(nav[currentIndex], 'tab-link-active');
 			}
-			addClass(menu[pos], 'tab-link-active');
+			tabs[pos].style.display = 'block';
 			addClass(tabs[pos], 'tab-active');
+			addClass(nav[pos], 'tab-link-active');
+			currentIndex = pos;
 		}
 
 		function addTabLinkClickEvent(link) {
 			listen(link, 'click', function(e) {
 				if (e.preventDefault) e.preventDefault();
 				else e.returnValue = false;
-				var target = link.hash;
-				console.log(target);
+				updateActiveTab(getNodeIndex(link.parentNode));
+				if(options.loadHash) {
+					if(history.replaceState) {
+						history.replaceState(undefined, undefined, link.hash);
+					} else if(window.location.replace) {
+						window.location.replace(link.hash);
+					}
+				}
 			});
+		}
+
+		function getActiveHashIndex(hash) {
+			for(var i = 0; i < tabs.length; i++) {
+				if(tabs[i].id === hash.replace('#', '')) {
+					return i;
+				}
+			}
+			return -1;
 		}
 
 		this.init = function() {
@@ -353,14 +403,26 @@ var Velocity = require('velocity-animate');
 				var link = menu.getElementsByTagName('a')[i];
 				addTabLinkClickEvent(link);
 			}
+
+			// hide all tabs
+			for(i = 0; i < tabs.length; i++) {
+				tabs[i].style.display = 'none';
+			}
+
+			var activeIndex = getActiveHashIndex(window.location.hash);
+			if(options.loadHash && activeIndex > -1) {
+				updateActiveTab(activeIndex);
+			} else {
+				updateActiveTab(0);
+			}
 		};
 	};
 
 	window.FireNav = FireNav;
 
 })();
-}).call(this,require("oMfpAn"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],"/fake_87dec679.js","/")
-},{"buffer":2,"oMfpAn":5,"velocity-animate":6}],2:[function(require,module,exports){
+}).call(this,require("ngpmcQ"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],"/fake_440c380.js","/")
+},{"buffer":2,"ngpmcQ":5,"velocity-animate":6}],2:[function(require,module,exports){
 (function (process,global,Buffer,__argument0,__argument1,__argument2,__argument3,__filename,__dirname){
 /*!
  * The buffer module from node.js, for the browser.
@@ -1472,8 +1534,8 @@ function assert (test, message) {
   if (!test) throw new Error(message || 'Failed assertion')
 }
 
-}).call(this,require("oMfpAn"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],"/../../node_modules/gulp-browserify/node_modules/browserify/node_modules/buffer/index.js","/../../node_modules/gulp-browserify/node_modules/browserify/node_modules/buffer")
-},{"base64-js":3,"buffer":2,"ieee754":4,"oMfpAn":5}],3:[function(require,module,exports){
+}).call(this,require("ngpmcQ"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],"/..\\..\\node_modules\\gulp-browserify\\node_modules\\browserify\\node_modules\\buffer\\index.js","/..\\..\\node_modules\\gulp-browserify\\node_modules\\browserify\\node_modules\\buffer")
+},{"base64-js":3,"buffer":2,"ieee754":4,"ngpmcQ":5}],3:[function(require,module,exports){
 (function (process,global,Buffer,__argument0,__argument1,__argument2,__argument3,__filename,__dirname){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
@@ -1600,8 +1662,8 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	exports.fromByteArray = uint8ToBase64
 }(typeof exports === 'undefined' ? (this.base64js = {}) : exports))
 
-}).call(this,require("oMfpAn"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],"/../../node_modules/gulp-browserify/node_modules/browserify/node_modules/buffer/node_modules/base64-js/lib/b64.js","/../../node_modules/gulp-browserify/node_modules/browserify/node_modules/buffer/node_modules/base64-js/lib")
-},{"buffer":2,"oMfpAn":5}],4:[function(require,module,exports){
+}).call(this,require("ngpmcQ"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],"/..\\..\\node_modules\\gulp-browserify\\node_modules\\browserify\\node_modules\\buffer\\node_modules\\base64-js\\lib\\b64.js","/..\\..\\node_modules\\gulp-browserify\\node_modules\\browserify\\node_modules\\buffer\\node_modules\\base64-js\\lib")
+},{"buffer":2,"ngpmcQ":5}],4:[function(require,module,exports){
 (function (process,global,Buffer,__argument0,__argument1,__argument2,__argument3,__filename,__dirname){
 exports.read = function(buffer, offset, isLE, mLen, nBytes) {
   var e, m,
@@ -1688,8 +1750,8 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
-}).call(this,require("oMfpAn"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],"/../../node_modules/gulp-browserify/node_modules/browserify/node_modules/buffer/node_modules/ieee754/index.js","/../../node_modules/gulp-browserify/node_modules/browserify/node_modules/buffer/node_modules/ieee754")
-},{"buffer":2,"oMfpAn":5}],5:[function(require,module,exports){
+}).call(this,require("ngpmcQ"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],"/..\\..\\node_modules\\gulp-browserify\\node_modules\\browserify\\node_modules\\buffer\\node_modules\\ieee754\\index.js","/..\\..\\node_modules\\gulp-browserify\\node_modules\\browserify\\node_modules\\buffer\\node_modules\\ieee754")
+},{"buffer":2,"ngpmcQ":5}],5:[function(require,module,exports){
 (function (process,global,Buffer,__argument0,__argument1,__argument2,__argument3,__filename,__dirname){
 // shim for using process in browser
 
@@ -1755,8 +1817,8 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-}).call(this,require("oMfpAn"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],"/../../node_modules/gulp-browserify/node_modules/browserify/node_modules/process/browser.js","/../../node_modules/gulp-browserify/node_modules/browserify/node_modules/process")
-},{"buffer":2,"oMfpAn":5}],6:[function(require,module,exports){
+}).call(this,require("ngpmcQ"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],"/..\\..\\node_modules\\gulp-browserify\\node_modules\\browserify\\node_modules\\process\\browser.js","/..\\..\\node_modules\\gulp-browserify\\node_modules\\browserify\\node_modules\\process")
+},{"buffer":2,"ngpmcQ":5}],6:[function(require,module,exports){
 (function (process,global,Buffer,__argument0,__argument1,__argument2,__argument3,__filename,__dirname){
 /*! VelocityJS.org (1.2.1). (C) 2014 Julian Shapiro. MIT @license: en.wikipedia.org/wiki/MIT_License */
 
@@ -5626,5 +5688,5 @@ return function (global, window, document, undefined) {
 /* The CSS spec mandates that the translateX/Y/Z transforms are %-relative to the element itself -- not its parent.
 Velocity, however, doesn't make this distinction. Thus, converting to or from the % unit with these subproperties
 will produce an inaccurate conversion value. The same issue exists with the cx/cy attributes of SVG circles and ellipses. */
-}).call(this,require("oMfpAn"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],"/../../node_modules/velocity-animate/velocity.js","/../../node_modules/velocity-animate")
-},{"buffer":2,"oMfpAn":5}]},{},[1])
+}).call(this,require("ngpmcQ"),typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer,arguments[3],arguments[4],arguments[5],arguments[6],"/..\\..\\node_modules\\velocity-animate\\velocity.js","/..\\..\\node_modules\\velocity-animate")
+},{"buffer":2,"ngpmcQ":5}]},{},[1])
