@@ -290,13 +290,68 @@ var Velocity = require('velocity-animate');
 	 */
 	FireNav.tab = function(opts) {
 		var defaults = {
-			menu: '#fireTabs',
-			tabClass: '.tab'
+			tabMenu: '#fireTabs',
+			tabClass: '.tab',
 			loadHash: false
-		}
+		};
 
 		var options = extend(opts, defaults);
 		var tabs = document.querySelectorAll(options.tabClass);
+		var menu = document.querySelectorAll(options.tabMenu)[0];
+		var currentTab = null;
+
+		function cleanString(string) {
+			return string.toLowerCase().replace(/^\s+|\s+$/g, '').replace(/&#{0,1}[a-z0-9]+;/ig, '').replace(/[^\w\s]/gi, '').replace(/\s+/g, '-');
+		}
+
+		function constructNav() {
+			var ul = document.createElement('UL');
+
+			if(tabs.length > 0) {
+				for(var i = 0; i < tabs.length; i++) {
+					var li = document.createElement('LI');
+					var a = document.createElement('A');
+					var title = tabs[i].dataset.tab;
+					var clean = cleanString(title);
+					tabs[i].id = clean;
+					a.text = title;
+					a.href = '#' + clean;
+					a.dataset.tabLink = clean;
+					li.appendChild(a);
+					ul.appendChild(li);
+				}
+			}
+			menu.appendChild(ul);
+		}
+
+		function getActiveTab() {
+		}
+
+		function updateActiveTab(pos) {
+			if(currentTab !== null) {
+
+			}
+			addClass(menu[pos], 'tab-link-active');
+			addClass(tabs[pos], 'tab-active');
+		}
+
+		function addTabLinkClickEvent(link) {
+			listen(link, 'click', function(e) {
+				if (e.preventDefault) e.preventDefault();
+				else e.returnValue = false;
+				var target = link.hash;
+				console.log(target);
+			});
+		}
+
+		this.init = function() {
+			constructNav();
+
+			for(var i = 0; i < menu.getElementsByTagName('a').length; i++) {
+				var link = menu.getElementsByTagName('a')[i];
+				addTabLinkClickEvent(link);
+			}
+		};
 	};
 
 	window.FireNav = FireNav;
