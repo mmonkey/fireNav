@@ -103,7 +103,7 @@ nav.dropdown {
 	top: 50%;
 	right: 0;
 
-	.jump-nav-active {
+	.firenav-jump-active {
 		a {
 			font-weight: bold;
 		}
@@ -130,7 +130,7 @@ nav.dropdown {
 			text-decoration: none;
 		}
 
-		&:hover a, &.tab-link-active a{
+		&:hover a, &.firenav-tab-link-active a{
 			background: CornflowerBlue;
 			color: white;
 		}

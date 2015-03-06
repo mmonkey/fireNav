@@ -1,217 +1,71 @@
-/* fireNav (0.1.0). (C) 2014 CJ O'Hara and Tyler Fowle. MIT @license: en.wikipedia.org/wiki/MIT_License */
-var Velocity = require('velocity-animate');
+/* fireNav (0.2.0). (C) 2014 CJ O'Hara. MIT @license: en.wikipedia.org/wiki/MIT_License */
+var V = (window.jQuery) ? $.Velocity : Velocity;
 
-(function () {
+(function (FireNav, window, undefined) {
 
-	FireNav = function() {
+	var fireNav = {
 	};
-
-	// Set up Velocity
-	var V = (window.jQuery) ? $.Velocity : Velocity;
-
-	// Extend defaults into opts, returns options
-	function extend(opts, defaults) {
-		var options = opts || {};
-		for (var opt in defaults) {
-			if (defaults.hasOwnProperty(opt) && !options.hasOwnProperty(opt)) {
-				options[opt] = defaults[opt];
-			}
-		}
-		return options;
-	}
-
-	// Custom events will bind to these htmlEvents in IE < 9
-	var htmlEvents = {
-		onload: 1, onunload: 1, onblur: 1, onchange: 1, onfocus: 1, onreset: 1, onselect: 1,
-		onsubmit: 1, onabort: 1, onkeydown: 1, onkeypress: 1, onkeyup: 1, onclick: 1, ondblclick: 1,
-		onmousedown: 1, onmousemove: 1, onmouseout: 1, onmouseover: 1, onmouseup: 1
-	};
-
-	// Create and trigger an event
-	function trigger(el, eventName){
-		var event;
-		if(document.createEvent){
-			event = document.createEvent('HTMLEvents');
-			event.initEvent(eventName,true,true);
-		}else if(document.createEventObject){// IE < 9
-			event = document.createEventObject();
-			event.eventType = eventName;
-		}
-		event.eventName = eventName;
-		if(el.dispatchEvent){
-			el.dispatchEvent(event);
-		}else if(el.fireEvent && htmlEvents['on'+eventName]){// IE < 9
-			el.fireEvent('on'+event.eventType,event); // can trigger only real event (e.g. 'click')
-		}else if(el[eventName]){
-			el[eventName]();
-		}else if(el['on'+eventName]){
-			el['on'+eventName]();
-		}
-	}
-
-	// Event listener for built-in and custom events
-	function listen(el, type, handler){
-		if(el.listenListener){
-			el.listenListener(type,handler,false);
-		}else if(el.attachEvent && htmlEvents['on'+type]){// IE < 9
-			el.attachEvent('on'+type,handler);
-		}else{
-			el['on'+type]=handler;
-		}
-	}
-
-	// Remove event listener for built-in and custom events
-	function removeEvent(el, type, handler){
-		if(el.removeventListener){
-			el.removeEventListener(type,handler,false);
-		}else if(el.detachEvent && htmlEvents['on'+type]){// IE < 9
-			el.detachEvent('on'+type,handler);
-		}else{
-			el['on'+type]=null;
-		}
-	}
-
-	// Add class to node's classList
-	function addClass(node, newClass) {
-		if (node.classList) {
-				node.classList.add(newClass);
-		} else {
-				node.className += ' ' + newClass;
-		}
-	}
-
-	// Remove class from node's classList
-	function removeClass(node, rmClass) {
-		if (node.classList) {
-				node.classList.remove(rmClass);
-		} else {
-			node.className = node.className.replace(new RegExp('(^|\\b)' + rmClass.split(' ').join('|') + '(\\b|$)', 'gi'), ' ');
-		}
-	}
-
-	// Returns true if node has className
-	function hasClass(node, className) {
-		var result = false;
-		if (node.classList) {
-			if(node.classList.contains(className)) {
-				result = true;
-			}
-		}
-		return result;
-	}
-
-	// Returns the index of a node amongst that node's siblings
-	function getNodeIndex(node) {
-		var index = 0;
-		if(node !== null) {
-			while ( (node = node.previousSibling) ) {
-				if (node.nodeType != 3 || !/^\s*$/.test(node.data)) {
-					index++;
-				}
-			}
-			return index;
-		} else {
-			return -1;
-		}
-	}
-
-	// Shim for element.dataset
-	function getData(node){
-		if(node.dataset) {
-			return node.dataset;
-		} else {
-			var attributes = node.attributes;
-			var simulatedDataset = {};
-			for (var i = attributes.length; i--; ){
-				if (/^data-.*/.test(attributes[i].name)) {
-					var key = attributes[i].name.replace('data-', '');
-					var value = node.getAttribute(attributes[i].name);
-					simulatedDataset[key] = value;
-				}
-			}
-			return simulatedDataset;
-		}
-	}
 
 	/**
 	 * FireNav.jump function
 	 * Adds a smart jump menu that appends to the body
 	 */
-	FireNav.jump = function(opts) {
-		var defaults = {
-			appendTo: 'body',
-			sectionClass: ".section",
-			speed: 800,
-			offset: 0
+	fireNav.jump = function(sel, opts) {
+
+		// Log error if velocity is not found.
+		if(typeof V === 'undefined') {
+			console.log('%cWARNING: fireSlider requires velocity.js to run correctly.', 'background: #E82C0C; color: white; padding: 0 12px;');
+			return;
+		}
+
+		var jumpNav = {
+			activeHashNode: null,
+			jumpLinks: [],
+			nav: {},
+			options: {},
+			selector: "",
+			sections: [],
+			watchScroll: true
 		};
 
-		var options = extend(opts, defaults);
-		var sections = document.querySelectorAll(options.sectionClass);
-		var nav = {};
-		var jumpLinks = [];
-		var activeHashNode = null;
-		var watchScroll = true;
+		// Load selector and nav
+		jumpNav.selector = sel;
+		jumpNav.nav = document.querySelector(jumpNav.selector);
+		if(typeof jumpNav.nav === 'undefined') return;
+		
+		var defaults = {
+			activeClass: 'firenav-jump-active',
+			offset: 0,
+			sectionClass: ".firenav-section",
+			speed: 800,
+			updateHash: false,
+			watchScroll: true
+		};
+
+		// Extend options with defaults
+		jumpNav.options = fireNav._utilities.extend(opts, defaults);
+
+		// Load sections
+		jumpNav.sections = document.querySelectorAll(jumpNav.options.sectionClass);
+		if(jumpNav.sections.length === 0) return;
+
+		var isScrolling = false;
 
 		function constructNav() {
-			nav = document.createElement('NAV');
-			nav.id = 'jumpNav';
+			var ul = document.createElement('UL');
 
-			if(sections.length > 0) {
-				for(var i = 0; i < sections.length; i++) {
-					var li = document.createElement('LI');
-					var a = document.createElement('A');
-					a.href = '#' + sections[i].id;
-					a.innerText = sections[i].dataset.jumpName;
-					li.dataset.jumpClass = sections[i].dataset.jumpClass;
-					li.appendChild(a);
-					jumpLinks.push(li);
-					nav.appendChild(li);
-				}
+			for(var i = 0; i < jumpNav.sections.length; i++) {
+				var li = document.createElement('LI');
+				var a = document.createElement('A');
+				var data = fireNav._utilities.getData(jumpNav.sections[i]);
+				a.href = '#' + jumpNav.sections[i].id;
+				a.innerText = (data.firenavJumpName) ? data.firenavJumpName : '';
+				li.appendChild(a);
+				ul.appendChild(li);
+				jumpNav.jumpLinks.push(li);
 			}
-			if(document.contains(document.querySelector(options.appendTo))) {
-				document.querySelector(options.appendTo).appendChild(nav);
-			} else {
-				document.body.appendChild(nav);
-			}
-		}
 
-		function getZoomAmount() {
-			var result = 1;
-			if (document.body.getBoundingClientRect) {
-				var rect = document.body.getBoundingClientRect();
-				var physicalW = rect.right - rect.left;
-				var logicalW = document.body.offsetWidth;
-				result = (physicalW / logicalW);
-			}
-			return result;
-		}
-
-		function getWindowScrollTop() {
-			var result = 0;
-			if ('pageXOffset' in window) {
-				result = window.pageYOffset;
-			} else {
-				result = document.documentElement.scrollTop / getZoomAmount();
-			}
-			return result;
-		}
-
-		function getWindowScrollLeft() {
-			var result = 0;
-			if ('pageXOffset' in window) {
-				result =  window.pageXOffset;
-			} else {
-				result = document.documentElement.scrollLeft / getZoomAmount();
-			}
-			return result;
-		}
-
-		function getScrollTop(node) {
-			return node.getBoundingClientRect().top;
-		}
-
-		function getScrollLeft(node) {
-			return node.getBoundingClientRect().left;
+			jumpNav.nav.appendChild(ul);
 		}
 
 		// Returns the active hash node based on nodes scrollTop
@@ -219,8 +73,8 @@ var Velocity = require('velocity-animate');
 			var result = null;
 			var max = -1;
 			for(var i = 0; i < hashNodes.length; i++) {
-				var elemY = getScrollTop(hashNodes[i]);
-				if(elemY <= options.offset) {
+				var elemY = fireNav._utilities.getScrollTop(hashNodes[i]);
+				if(Math.floor(elemY) <= jumpNav.options.offset) {
 					if(elemY > max || max === -1) {
 						max = elemY;
 						result = hashNodes[i];
@@ -230,64 +84,75 @@ var Velocity = require('velocity-animate');
 			return result;
 		}
 
-		// Updates the active hash node based on nodes scrollTop
-		function updateActiveHashNode() {
-			if(activeHashNode !== getActiveHashNode(sections)) {
-				var lastActiveHashNode = activeHashNode;
-				activeHashNode = getActiveHashNode(sections);
-				updateActiveLinkClass({
-					prevNode: (lastActiveHashNode) ? lastActiveHashNode.id : null,
-					nextNode: (activeHashNode) ? activeHashNode.id : null,
-					className: 'jump-nav-active'
-				});
-			}
-		}
-
 		// Adds class to active link, removes class from previous active link
 		function updateActiveLinkClass(opts) {
-			for(var i = 0; i < jumpLinks.length; i++) {
-				var link = jumpLinks[i].getElementsByTagName('A')[0];
+			for(var i = 0; i < jumpNav.jumpLinks.length; i++) {
+				var link = jumpNav.jumpLinks[i].getElementsByTagName('A')[0];
 
 				if(opts.prevNode) {
 					if(link.hash === '#' + opts.prevNode) {
-						removeClass(jumpLinks[i], opts.className);
+						fireNav._utilities.removeClass(jumpNav.jumpLinks[i], opts.className);
 					}
 				}
 
 				if(opts.nextNode) {
 					if(link.hash === '#' + opts.nextNode) {
-						addClass(jumpLinks[i], opts.className);
+						fireNav._utilities.addClass(jumpNav.jumpLinks[i], opts.className);
 					}
 				}
 			}
 		}
 
+		// Updates the active hash node based on nodes scrollTop
+		function updateActiveHashNode() {
+			if(jumpNav.activeHashNode !== getActiveHashNode(jumpNav.sections)) {
+				var lastActiveHashNode = jumpNav.activeHashNode;
+				jumpNav.activeHashNode = getActiveHashNode(jumpNav.sections);
+				updateActiveLinkClass({
+					prevNode: (lastActiveHashNode) ? lastActiveHashNode.id : null,
+					nextNode: (jumpNav.activeHashNode) ? jumpNav.activeHashNode.id : null,
+					className: jumpNav.options.activeClass
+				});
+			}
+		}
+
 		// Smooth scroll links on click events, add active class to clicked jump link
 		function addJumpLinkClickEvent(node) {
-			listen(node, 'click', function(e) {
+			fireNav._utilities.listen(node, 'click', function(e) {
 					if (e.preventDefault) e.preventDefault();
 					else e.returnValue = false;
 					var target = (e.target) ? e.target : e.srcElement;
 					var section = document.querySelector(target.hash);
-					V(section, "scroll", { duration: options.speed, easing: "ease-in-out", offset: options.offset,
+					isScrolling = true;
+					V(section, "scroll", { duration: jumpNav.options.speed, easing: "ease-in-out", offset: jumpNav.options.offset,
 						complete: function() {
-							watchScroll = false;
+							jumpNav.watchScroll = false;
 
-							if(activeHashNode !== section) {
-								var lastActiveHashNode = activeHashNode;
-								activeHashNode = section;
+							if(jumpNav.activeHashNode !== section) {
+								var lastActiveHashNode = jumpNav.activeHashNode;
+								jumpNav.activeHashNode = section;
 
 								updateActiveLinkClass({
 									prevNode: (lastActiveHashNode) ? lastActiveHashNode.id : null,
-									nextNode: (activeHashNode) ? activeHashNode.id : null,
-									className: 'jump-nav-active'
+									nextNode: (jumpNav.activeHashNode) ? jumpNav.activeHashNode.id : null,
+									className: jumpNav.options.activeClass
 								});
 							}
 
 							// makes up for Velocities built in animation delay
 							setTimeout(function() {
-								watchScroll = true;
+								if(jumpNav.options.updateHash) {
+									if(history.replaceState) {
+										history.replaceState(undefined, undefined, '#' + jumpNav.activeHashNode.id);
+									} else if(window.location.replace) {
+										window.location.replace('#' + jumpNav.activeHashNode.id);
+									}
+								}
+
+								jumpNav.watchScroll = true;
 							}, 20);
+
+							isScrolling = false;
 
 						}
 					});
@@ -295,87 +160,114 @@ var Velocity = require('velocity-animate');
 				});
 		}
 
-		this.init = function() {
+		// Add jumpNav listeners
+		function addJumpNavEventListeners() {
+
+			if(jumpNav.options.watchScroll) {
+				fireNav._utilities.listen(window, 'scroll', function(e) {
+					if(jumpNav.watchScroll) {
+						updateActiveHashNode();
+						if(jumpNav.options.updateHash && !isScrolling) {
+							if(history.replaceState) {
+								history.replaceState(undefined, undefined, '#' + jumpNav.activeHashNode.id);
+							} else if(window.location.replace) {
+								window.location.replace('#' + jumpNav.activeHashNode.id);
+							}
+						}
+					}
+				});
+			}
+		}
+
+		function init() {
 			constructNav();
 
 			// Create event listeners on the jumpnav
-			for(var i = 0; i < nav.getElementsByTagName('a').length; i++) {
-				var link = nav.getElementsByTagName('a')[i];
+			for(var i = 0; i < jumpNav.nav.getElementsByTagName('a').length; i++) {
+				var link = jumpNav.nav.getElementsByTagName('a')[i];
 				addJumpLinkClickEvent(link);
 			}
+
 			updateActiveHashNode();
-		};
+			addJumpNavEventListeners();
+		}
 
-		listen(window, 'scroll', function(e) {
-			if(watchScroll) {
-				updateActiveHashNode();
-				//window.location.hash = activeHashNode.id;
-			}
-		});
-
-		listen(window, 'resize', function(e) {
-		});
+		init();
+		return jumpNav;
 	};
 
 	/**
 	 * FireNav.tab function
 	 * Adds a tabbed menu
 	 */
-	FireNav.tab = function(opts) {
-		var defaults = {
-			tabMenu: '#fireTabs',
-			tabClass: '.tab',
-			loadHash: false
+	fireNav.tabs = function(sel, opts) {
+
+		var tabNav = {
+			selector: '',
+			options: {},
+			tabLinks: [],
+			tabs: [],
+			nav: {},
+			currentIndex: -1
 		};
 
-		var options = extend(opts, defaults);
-		var tabs = document.querySelectorAll(options.tabClass);
-		var menu = document.querySelectorAll(options.tabMenu)[0];
-		var nav = [];
-		var currentIndex = -1;
+		// Load selector and nav
+		tabNav.selector = sel;
+		tabNav.nav = document.querySelector(tabNav.selector);
+		if(typeof tabNav.nav === 'undefined') return;
 
-		function cleanString(string) {
-			return string.toLowerCase().replace(/^\s+|\s+$/g, '').replace(/&#{0,1}[a-z0-9]+;/ig, '').replace(/[^\w\s]/gi, '').replace(/\s+/g, '-');
-		}
+		var defaults = {
+			activeTabClass: 'firenav-tab-active',
+			activeTabLinkClass: 'firenav-tab-link-active',
+			tabClass: '.tab',
+			loadHash: true
+		};
+
+		// Load options
+		tabNav.options = fireNav._utilities.extend(opts, defaults);
+
+		// Load tabs
+		tabNav.tabs = document.querySelectorAll(tabNav.options.tabClass);
+		if(tabNav.tabs.length === 0) return;
 
 		function constructNav() {
 			var ul = document.createElement('UL');
-
-			if(tabs.length > 0) {
-				for(var i = 0; i < tabs.length; i++) {
-					var li = document.createElement('LI');
-					var a = document.createElement('A');
-					var title = getData(tabs[i]).tab;
-					var clean = cleanString(title);
-					tabs[i].id = clean;
-					a.text = title;
-					a.href = '#' + clean;
-					li.appendChild(a);
-					nav.push(li);
-					ul.appendChild(li);
-				}
+			
+			for(var i = 0; i < tabNav.tabs.length; i++) {
+				var li = document.createElement('LI');
+				var a = document.createElement('A');
+				var data = fireNav._utilities.getData(tabNav.tabs[i]);
+				var title = (data.firenavTab) ? data.firenavTab : '';
+				var clean = fireNav._utilities.cleanString(title);
+				tabNav.tabs[i].id = clean;
+				a.text = title;
+				a.href = '#' + clean;
+				li.appendChild(a);
+				ul.appendChild(li);
+				tabNav.tabLinks.push(li);
 			}
-			menu.appendChild(ul);
+
+			tabNav.nav.appendChild(ul);
 		}
 
 		function updateActiveTab(pos) {
-			if(currentIndex > -1) {
-				tabs[currentIndex].style.display = 'none';
-				removeClass(tabs[currentIndex], 'tab-active');
-				removeClass(nav[currentIndex], 'tab-link-active');
+			if(tabNav.currentIndex > -1) {
+				tabNav.tabs[tabNav.currentIndex].style.display = 'none';
+				fireNav._utilities.removeClass(tabNav.tabs[tabNav.currentIndex], tabNav.options.activeTabClass);
+				fireNav._utilities.removeClass(tabNav.tabLinks[tabNav.currentIndex], tabNav.options.activeTabLinkClass);
 			}
-			tabs[pos].style.display = 'block';
-			addClass(tabs[pos], 'tab-active');
-			addClass(nav[pos], 'tab-link-active');
-			currentIndex = pos;
+			tabNav.tabs[pos].style.display = 'block';
+			fireNav._utilities.addClass(tabNav.tabs[pos], tabNav.options.activeTabClass);
+			fireNav._utilities.addClass(tabNav.tabLinks[pos], tabNav.options.activeTabLinkClass);
+			tabNav.currentIndex = pos;
 		}
 
 		function addTabLinkClickEvent(link) {
-			listen(link, 'click', function(e) {
+			fireNav._utilities.listen(link, 'click', function(e) {
 				if (e.preventDefault) e.preventDefault();
 				else e.returnValue = false;
-				updateActiveTab(getNodeIndex(link.parentNode));
-				if(options.loadHash) {
+				updateActiveTab(fireNav._utilities.getNodeIndex(link.parentNode));
+				if(tabNav.options.loadHash) {
 					if(history.replaceState) {
 						history.replaceState(undefined, undefined, link.hash);
 					} else if(window.location.replace) {
@@ -386,36 +278,209 @@ var Velocity = require('velocity-animate');
 		}
 
 		function getActiveHashIndex(hash) {
-			for(var i = 0; i < tabs.length; i++) {
-				if(tabs[i].id === hash.replace('#', '')) {
+			for(var i = 0; i < tabNav.tabs.length; i++) {
+				if(tabNav.tabs[i].id === hash.replace('#', '')) {
 					return i;
 				}
 			}
 			return -1;
 		}
 
-		this.init = function() {
+		function init() {
 			constructNav();
 
-			for(var i = 0; i < menu.getElementsByTagName('a').length; i++) {
-				var link = menu.getElementsByTagName('a')[i];
+			for(var i = 0; i < tabNav.nav.getElementsByTagName('a').length; i++) {
+				var link = tabNav.nav.getElementsByTagName('a')[i];
 				addTabLinkClickEvent(link);
 			}
 
 			// hide all tabs
-			for(i = 0; i < tabs.length; i++) {
-				tabs[i].style.display = 'none';
+			for(i = 0; i < tabNav.tabs.length; i++) {
+				tabNav.tabs[i].style.display = 'none';
 			}
 
 			var activeIndex = getActiveHashIndex(window.location.hash);
-			if(options.loadHash && activeIndex > -1) {
+			if(tabNav.options.loadHash && activeIndex > -1) {
 				updateActiveTab(activeIndex);
 			} else {
 				updateActiveTab(0);
 			}
-		};
+		}
+
+		init();
+		return tabNav;
 	};
 
-	window.FireNav = FireNav;
+	fireNav._utilities = {
 
-})();
+		// Add class to node's classList
+		addClass: function(node, newClass) {
+			if (node.classList) {
+					node.classList.add(newClass);
+			} else {
+					node.className += ' ' + newClass;
+			}
+		},
+
+		// Remove class from node's classList
+		removeClass: function(node, rmClass) {
+			if (node.classList) {
+					node.classList.remove(rmClass);
+			} else {
+				node.className = node.className.replace(new RegExp('(^|\\b)' + rmClass.split(' ').join('|') + '(\\b|$)', 'gi'), ' ');
+			}
+		},
+
+		// Returns true if node has className
+		hasClass: function(node, className) {
+			return (node.classList) ? node.classList.contains(className) : new RegExp('(^| )' + className + '( |$)', 'gi').test(node.className);
+		},
+
+		// Returns the index of a node amongst that node's siblings
+		getNodeIndex: function(node) {
+			var index = 0;
+			if(node !== null) {
+				while ( (node = node.previousSibling) ) {
+					if (node.nodeType != 3 || !/^\s*$/.test(node.data)) {
+						index++;
+					}
+				}
+				return index;
+			} else {
+				return -1;
+			}
+		},
+
+		// Format data-attribute key
+		formatDataKey: function(key) {
+			var temp = [];
+			key = key.replace('data-', '');
+			key = key.split('-');
+			temp[0] = key[0];
+			for(var i = 1; i < key.length; i++) {
+				temp.push(key[i].charAt(0).toUpperCase() + key[i].substr(1).toLowerCase());
+			}
+			return temp.join('');
+		},
+
+		// Shim for element.dataset
+		getData: function(node){
+			if(node.dataset) {
+				return node.dataset;
+			} else {
+				var attributes = node.attributes;
+				var simulatedDataset = {};
+				for (var i = attributes.length; i--; ){
+					if (/^data-.*/.test(attributes[i].name)) {
+						var key = fireNav._utilities.formatDataKey(attributes[i].name);
+						var value = node.getAttribute(attributes[i].name);
+						simulatedDataset[key] = value;
+					}
+				}
+				return simulatedDataset;
+			}
+		},
+
+		// Extend defaults into opts, returns options - comment below prevents warning about hasOwnProperty in gulp
+		/* jshint -W001 */
+		extend: function(opts, def) {
+			var options = opts || {};
+			var defaults = def || {};
+			for (var opt in defaults) {
+				defaults.hasOwnProperty = defaults.hasOwnProperty || Object.prototype.hasOwnProperty;
+				if (defaults.hasOwnProperty(opt) && !options.hasOwnProperty(opt)) {
+					options[opt] = defaults[opt];
+				}
+			}
+			return options;
+		},
+
+		// Clean String
+		cleanString: function(string) {
+			return string.toLowerCase().replace(/^\s+|\s+$/g, '').replace(/&#{0,1}[a-z0-9]+;/ig, '').replace(/[^\w\s]/gi, '').replace(/\s+/g, '-');
+		},
+
+		// Custom events will bind to these htmlEvents in ie < 9
+		htmlEvents: {
+			onload: 1, onunload: 1, onblur: 1, onchange: 1, onfocus: 1, onreset: 1, onselect: 1,
+			onsubmit: 1, onabort: 1, onkeydown: 1, onkeypress: 1, onkeyup: 1, onclick: 1, ondblclick: 1,
+			onmousedown: 1, onmousemove: 1, onmouseout: 1, onmouseover: 1, onmouseup: 1
+		},
+
+		// Event listener for built-in and custom events
+		listen: function(el, type, handler){
+			if(el.listenListener){
+				el.listenListener(type,handler,false);
+			}else if(el.attachEvent && fireNav._utilities.htmlEvents['on'+type]){// IE < 9
+				el.attachEvent('on'+type,handler);
+			}else{
+				el['on'+type]=handler;
+			}
+		},
+
+		getZoomAmount: function() {
+			var result = 1;
+			if (document.body.getBoundingClientRect) {
+				var rect = document.body.getBoundingClientRect();
+				var physicalW = rect.right - rect.left;
+				var logicalW = document.body.offsetWidth;
+				result = (physicalW / logicalW);
+			}
+			return result;
+		},
+
+		getWindowScrollTop: function() {
+			var result = 0;
+			if ('pageXOffset' in window) {
+				result = window.pageYOffset;
+			} else {
+				result = document.documentElement.scrollTop / fireNav._utilities.getZoomAmount();
+			}
+			return result;
+		},
+
+		getWindowScrollLeft: function() {
+			var result = 0;
+			if ('pageXOffset' in window) {
+				result =  window.pageXOffset;
+			} else {
+				result = document.documentElement.scrollLeft / fireNav._utilities.getZoomAmount();
+			}
+			return result;
+		},
+
+		getScrollTop: function(node) {
+			return node.getBoundingClientRect().top;
+		},
+
+		getScrollLeft: function(node) {
+			return node.getBoundingClientRect().left;
+		}
+	};
+
+	window.FireNav = fireNav;
+
+})((window.FireNav = window.FireNav || {}), window);
+
+// If jQuery is available, create .fireNavJump() function
+if(window.jQuery) {
+	(function (window) {
+		$.fn.fireNavJump = function(opts) {
+			// Call FireNav.jump() with selector and arguments
+			var jumpNav = FireNav.jump(this.selector, opts);
+
+			// Return jquery object
+			return $(jumpNav);
+		};
+	})(window.jQuery);
+
+	(function (window) {
+		$.fn.fireNavTabs = function(opts) {
+			// Call FireNav.tabs() with selector and arguments
+			var tabNav = FireNav.tabs(this.selector, opts);
+
+			// Return jquery object
+			return $(tabNav);
+		};
+	})(window.jQuery);
+}

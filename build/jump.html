@@ -3,14 +3,16 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>fireNav.js - Development Test</title>
-
+	<title>fireNav.js | Jump</title>
 	<link rel="stylesheet" type="text/css" href="css/stylesheet.css">
-	<script src="../build/js/fireNav.dev.js"></script>
+	
+	<script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+	<script src="../build/js/vendor/velocity.min.js"></script>
+	<script src="../build/js/fireNav.js"></script>
 </head>
 <body class="firenav-jump">
 
-	<div class="section" id="top" data-jump-name="Top" data-jump-class="light">
+	<div class="section" id="top" data-firenav-jump-name="Top" data-firenav-jump-class="light">
 
 		<div class="wrap">
 			<nav id="mainNav" class="dropdown">
@@ -82,7 +84,7 @@
 
 	</div>
 
-	<div class="section" id="info" data-jump-name="Information" data-jump-class="dark">
+	<div class="section" id="info" data-firenav-jump-name="Information" data-firenav-jump-class="dark">
 
 		<div class="wrap">
 
@@ -120,7 +122,7 @@
 
 	</div>
 
-	<div class="section" id="third" data-jump-name="Third Section" data-jump-class="light">
+	<div class="section" id="third" data-firenav-jump-name="Third Section" data-firenav-jump-class="light">
 
 		<div class="wrap">
 
@@ -159,7 +161,7 @@
 	</div>
 
 
-	<div class="section" id="bottom" data-jump-name="Bottom" data-jump-class="light">
+	<div class="section" id="bottom" data-firenav-jump-name="Bottom" data-firenav-jump-class="light">
 
 		<div class="wrap">
 
@@ -196,11 +198,13 @@
 		</div>
 
 	</div>
+
+	<nav id="jumpNav"></nav>
 	
 
 	<script type="text/javascript">
-		var jumpNav = new FireNav.jump({speed: 450, appendTo: '#nav_here', offset: 0});
-		jumpNav.init();
+		//FireNav.jump('#jumpNav', {sectionClass: ".section", speed: 450, offset: 0});
+		$('#jumpNav').fireNavJump({sectionClass: ".section"});
 	</script>
 	
 </body>
