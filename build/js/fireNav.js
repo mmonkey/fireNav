@@ -203,12 +203,13 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 	fireNav.tabs = function(sel, opts) {
 
 		var tabNav = {
-			selector: '',
-			options: {},
-			tabLinks: [],
-			tabs: [],
+			currentIndex: -1,
+			data: {},
 			nav: {},
-			currentIndex: -1
+			options: {},
+			selector: '',
+			tabLinks: [],
+			tabs: []
 		};
 
 		// Load selector and nav
@@ -219,15 +220,27 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 		var defaults = {
 			activeTabClass: 'firenav-tab-active',
 			activeTabLinkClass: 'firenav-tab-link-active',
-			tabClass: '.tab',
-			loadHash: true
+			loadHash: true,
+			tab: '.tab'
 		};
 
+		var data = fireNav._utilities.getData(tabNav.nav);
+
+		tabNav.data = {
+			activeTabClass: data.firenavActiveTabClass,
+			activeTabLinkClass: data.firenavActiveTabLinkClass,
+			loadHash: (data.firenavLoadHash) ? fireNav._utilities.getBoolean(data.firenavLoadHash) : undefined,
+			tab: data.firenavTab
+		};
+
+		fireNav._utilities.removeUndefined(tabNav.data);
+
 		// Load options
-		tabNav.options = fireNav._utilities.extend(opts, defaults);
+		var options = fireNav._utilities.extend(tabNav.data, opts);
+		tabNav.options = fireNav._utilities.extend(options, defaults);
 
 		// Load tabs
-		tabNav.tabs = document.querySelectorAll(tabNav.options.tabClass);
+		tabNav.tabs = document.querySelectorAll(tabNav.options.tab);
 		if(tabNav.tabs.length === 0) return;
 
 		function constructNav() {
@@ -336,6 +349,13 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 			return (node.classList) ? node.classList.contains(className) : new RegExp('(^| )' + className + '( |$)', 'gi').test(node.className);
 		},
 
+		getBoolean: function(string) {
+			if(string.toLowerCase() === 'true') {
+				return true;
+			}
+			return false;
+		},
+
 		// Returns the index of a node amongst that node's siblings
 		getNodeIndex: function(node) {
 			var index = 0;
@@ -393,6 +413,13 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 				}
 			}
 			return options;
+		},
+
+		// Removes properties from object that are 'undefined'
+		removeUndefined: function(object) {
+			for(var key in object) {
+				if(typeof object[key] === "undefined") delete object[key];
+			}
 		},
 
 		// Clean String
@@ -472,9 +499,7 @@ if(window.jQuery) {
 			// Return jquery object
 			return $(jumpNav);
 		};
-	})(window.jQuery);
 
-	(function (window) {
 		$.fn.fireNavTabs = function(opts) {
 			// Call FireNav.tabs() with selector and arguments
 			var tabNav = FireNav.tabs(this.selector, opts);
