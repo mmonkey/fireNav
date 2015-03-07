@@ -36,17 +36,32 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 		var defaults = {
 			activeClass: 'firenav-jump-active',
 			offset: 0,
-			sectionClass: ".firenav-section",
+			section: ".firenav-section",
 			speed: 800,
 			updateHash: false,
 			watchScroll: true
 		};
 
+		var data = fireNav._utilities.getData(jumpNav.nav);
+
+		jumpNav.data = {
+			firenavActiveClass: data.firenavActiveClass,
+			offset: (data.firenavOffset) ? parseInt(data.firenavOffset) : undefined,
+			section: data.firenavSection,
+			speed: (data.firenavSpeed) ? parseInt(data.firenavSpeed) : undefined,
+			updateHash: (data.firenavUpateHash) ? fireNav._utilities.getBoolean(data.firenavUpdateHash) : undefined,
+			watchScroll: (data.firenavWatchScroll) ? fireNav._utilities.getBoolean(data.firenavWatchScroll) : undefined
+		};
+
+		// Removed undefined data
+		fireNav._utilities.removeUndefined(jumpNav.data);
+
 		// Extend options with defaults
-		jumpNav.options = fireNav._utilities.extend(opts, defaults);
+		var options = fireNav._utilities.extend(jumpNav.data, opts);
+		jumpNav.options = fireNav._utilities.extend(options, defaults);
 
 		// Load sections
-		jumpNav.sections = document.querySelectorAll(jumpNav.options.sectionClass);
+		jumpNav.sections = document.querySelectorAll(jumpNav.options.section);
 		if(jumpNav.sections.length === 0) return;
 
 		var isScrolling = false;
@@ -350,10 +365,7 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 		},
 
 		getBoolean: function(string) {
-			if(string.toLowerCase() === 'true') {
-				return true;
-			}
-			return false;
+			return (string.toLowerCase() === 'true');
 		},
 
 		// Returns the index of a node amongst that node's siblings
