@@ -14,9 +14,11 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 
 		// Log error if velocity is not found.
 		if(typeof V === 'undefined') {
-			console.log('%cWARNING: fireSlider requires velocity.js to run correctly.', 'background: #E82C0C; color: white; padding: 0 12px;');
+			console.log('%cWARNING: fireNav requires velocity.js to run correctly.', 'background: #E82C0C; color: white; padding: 0 12px;');
 			return;
 		}
+
+		var isScrolling = false;
 
 		var jumpNav = {
 			activeHashNode: null,
@@ -60,27 +62,97 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 		var options = fireNav._utilities.extend(jumpNav.data, opts);
 		jumpNav.options = fireNav._utilities.extend(options, defaults);
 
-		// Load sections
+
 		jumpNav.sections = document.querySelectorAll(jumpNav.options.section);
 		if(jumpNav.sections.length === 0) return;
 
-		var isScrolling = false;
+		function createSectionIds() {
+			for(var i = 0; i < jumpNav.sections.length; i++) {
+				var data = fireNav._utilities.getData(jumpNav.sections[i]);
+				var name = (data.firenavJumpName) ? data.firenavJumpName : '';
+				var id = fireNav._utilities.cleanString(name);
+				jumpNav.sections[i].id = (jumpNav.sections[i].id !== '') ? jumpNav.sections[i].id : id;
+				if(jumpNav.sections[i].id === '' && id === '') {
+					console.log('%cWARNING: Neither "data-firenav-jump-name" or "id" was found on section ' + (i + 1) + '.', 'background: #E82C0C; color: white; padding: 0px 12px;');
+					return false;
+				}
+			}
+			return true;
+		}
+
+		function createNavListItem(elm) {
+			var li = document.createElement('LI');
+			var a = document.createElement('A');
+			var data = fireNav._utilities.getData(elm);
+			a.href = '#' + elm.id;
+			a.innerText = (data.firenavJumpName) ? data.firenavJumpName : elm.id;
+			li.appendChild(a);
+			return li;
+		}
+
+		function getMathingParents(elm, sel) {
+			var matches = [];
+			elm = (typeof elm.parentNode !== 'undefined') ? elm.parentNode : elm;
+			while(elm) {
+				if(fireNav._utilities.matchesSelector(elm, sel)) matches.push(elm);
+				elm = elm.parentNode;
+			}
+			return matches;
+		}
+
+		function getSectionsAtDepth(array, sel, depth) {
+			var result = [];
+			for(var i = 0; i < array.length; i++) {
+				if(getMathingParents(array[i], sel).length === depth) {
+					result.push(array[i]);
+				}
+			}
+			return result;
+		}
+
+		function processSection(array, sel, list) {
+			for(var i = 0; i < array.length; i++) {
+				var li = createNavListItem(array[i]);
+
+				var children = array[i].querySelectorAll(sel);
+				if(children.length > 0) {
+					var ul = document.createElement('UL');
+					li.appendChild(ul);
+				}
+
+				var parents = getMathingParents(array[i], sel);
+				var parent = (parents.length > 0) ? parents.shift() : undefined;
+				insertElement(parent, li, list);
+			}
+		}
+
+		function insertElement(parent, elm, list) {
+			if(typeof parent !== 'undefined') {
+				var link = '#' + parent.id;
+				var target = list.querySelector('a[href="' + link + '"]').parentElement;
+				var targetUL = target.querySelector('UL');
+				targetUL.appendChild(elm);
+			} else {
+				list.appendChild(elm);
+			}
+		}
+
+		function loadSections(depth, array, list, sel) {
+			var section = getSectionsAtDepth(array, sel, depth);
+			if(section.length === 0) return;
+			processSection(section, sel, list);
+			depth++;
+			loadSections(depth, array, list, sel);
+		}
 
 		function constructNav() {
-			var ul = document.createElement('UL');
+			var depth = 0;
+			var array = jumpNav.sections;
+			var list = document.createElement('UL');
+			var sel = jumpNav.options.section;
 
-			for(var i = 0; i < jumpNav.sections.length; i++) {
-				var li = document.createElement('LI');
-				var a = document.createElement('A');
-				var data = fireNav._utilities.getData(jumpNav.sections[i]);
-				a.href = '#' + jumpNav.sections[i].id;
-				a.innerText = (data.firenavJumpName) ? data.firenavJumpName : '';
-				li.appendChild(a);
-				ul.appendChild(li);
-				jumpNav.jumpLinks.push(li);
-			}
-
-			jumpNav.nav.appendChild(ul);
+			loadSections(depth, array, list, sel);
+			jumpNav.nav.appendChild(list);
 		}
 
 		// Returns the active hash node based on nodes scrollTop
@@ -195,6 +267,8 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 		}
 
 		function init() {
+
+			if(!createSectionIds()) return;
 			constructNav();
 
 			// Create event listeners on the jumpnav
@@ -381,6 +455,24 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 			} else {
 				return -1;
 			}
+		},
+
+		// Returns true if element matches selector
+		matchesSel: function(elm, sel){
+			var matches = (elm.document || elm.ownerDocument).querySelectorAll(sel);
+			var i = 0;
+			while (matches[i] && matches[i] !== elm) { i++; }
+			return matches[i] ? true : false;
+		},
+
+		matchesSelector: function(elm, sel) {
+			var all = document.querySelectorAll(sel);
+			for (var i = 0; i < all.length; i++) {
+				if (all[i] === elm) {
+					return true;
+				}
+			}
+			return false;
 		},
 
 		// Format data-attribute key
