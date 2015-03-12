@@ -58,7 +58,7 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 			offset: (data.firenavOffset) ? parseInt(data.firenavOffset) : undefined,
 			section: data.firenavSection,
 			speed: (data.firenavSpeed) ? parseInt(data.firenavSpeed) : undefined,
-			updateHash: (data.firenavUpateHash) ? fireNav._utilities.getBoolean(data.firenavUpdateHash) : undefined,
+			updateHash: (data.firenavUpdateHash) ? fireNav._utilities.getBoolean(data.firenavUpdateHash) : undefined,
 			watchScroll: (data.firenavWatchScroll) ? fireNav._utilities.getBoolean(data.firenavWatchScroll) : undefined
 		};
 
@@ -78,9 +78,15 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 			for(var i = 0; i < jumpNav.sections.length; i++) {
 				var data = fireNav._utilities.getData(jumpNav.sections[i]);
 				var name = (data.firenavJumpName) ? data.firenavJumpName : '';
-				var id = fireNav._utilities.cleanString(name);
-				jumpNav.sections[i].id = (jumpNav.sections[i].id !== '') ? jumpNav.sections[i].id : id;
-				if(jumpNav.sections[i].id === '' && id === '') {
+				var nameId = fireNav._utilities.cleanString(name);
+
+				var parents = fireNav._utilities.getMathingParents(jumpNav.sections[i], jumpNav.options.section);
+				var parent = (parents.length > 0) ? parents.shift() : undefined;
+
+				if(typeof parent !== 'undefined') nameId = parent.id + '-' + nameId;
+
+				jumpNav.sections[i].id = (jumpNav.sections[i].id !== '') ? jumpNav.sections[i].id : nameId;
+				if(jumpNav.sections[i].id === '' && nameId === '') {
 					console.log('%cWARNING: Neither "data-firenav-jump-name" or "id" was found on section ' + (i + 1) + '.', 'background: #E82C0C; color: white; padding: 0px 12px;');
 					return false;
 				}
@@ -237,15 +243,7 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 				}
 			}
 
-			var id = opts.nextNode;
-			var elm = null;
-
-			for(var j = 0; j < jumpNav.sections.length; j++) {
-				if(jumpNav.sections[j].id === id) {
-					elm = jumpNav.sections[j];
-				}
-			}
-
+			var elm = document.getElementById(opts.nextNode);
 			if(elm)  {
 				var data = fireNav._utilities.getData(elm);
 				var jumpClass = (data.firenavJumpClass) ? data.firenavJumpClass : '';
@@ -267,6 +265,32 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 					nextNode: (jumpNav.activeHashNode) ? jumpNav.activeHashNode.id : null,
 					className: jumpNav.options.jumpSectionActiveClass
 				});
+			}
+		}
+
+		// When page loads, update active hash from window.location.hash
+		function loadWindowHash() {
+			var hash = window.location.hash;
+			var id = hash.split('#')[1];
+			var elm = document.getElementById(id);
+
+			for(var i = 0; i < jumpNav.jumpLinks.length; i++) {
+				var item = jumpNav.jumpLinks[i];
+				var link = item.querySelector('a');
+				if(link.hash === hash) {
+					fireNav._utilities.addClass(item, jumpNav.options.jumpSectionActiveClass);
+					jumpNav.activeHashNode = elm;
+				}
+			}
+
+			if(elm)  {
+				var data = fireNav._utilities.getData(elm);
+				var jumpClass = (data.firenavJumpClass) ? data.firenavJumpClass : '';
+				if(jumpNav.activeJumpClass !== '') fireNav._utilities.removeClass(jumpNav.nav, jumpNav.activeJumpClass);
+				if(jumpClass !== '') {
+					jumpNav.activeJumpClass = jumpClass;
+					fireNav._utilities.addClass(jumpNav.nav, jumpClass);
+				}
 			}
 		}
 
@@ -313,6 +337,14 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 				});
 		}
 
+		// Create event listeners on the jumpnav links
+		function addJumpNavClickEvents() {
+			for(var i = 0; i < jumpNav.jumpLinks.length; i++) {
+				var link = jumpNav.jumpLinks[i].querySelector('a');
+				addJumpLinkClickEvent(link);
+			}
+		}
+
 		// Add jumpNav listeners
 		function addJumpNavEventListeners() {
 
@@ -338,14 +370,20 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 			if(!createSectionIds()) return;
 			constructNav();
 
-			// Create event listeners on the jumpnav
-			for(var i = 0; i < jumpNav.nav.getElementsByTagName('a').length; i++) {
-				var link = jumpNav.nav.getElementsByTagName('a')[i];
-				addJumpLinkClickEvent(link);
+			if(jumpNav.options.updateHash) {
+				loadWindowHash();
+
+				// Add event listeners after timeout so loadWindowHash() wont get overridden.
+				setTimeout(function() {
+					addJumpNavClickEvents();
+					addJumpNavEventListeners();
+				}, 5);
+			} else {
+				updateActiveHashNode();
+				addJumpNavClickEvents();
+				addJumpNavEventListeners();
 			}
 
-			updateActiveHashNode();
-			addJumpNavEventListeners();
 		}
 
 		init();
