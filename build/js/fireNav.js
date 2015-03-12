@@ -22,6 +22,7 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 
 		var jumpNav = {
 			activeHashNode: null,
+			activeJumpClass: '',
 			jumpLinks: [],
 			nav: {},
 			options: {},
@@ -36,7 +37,10 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 		if(typeof jumpNav.nav === 'undefined') return;
 		
 		var defaults = {
-			activeClass: 'firenav-jump-active',
+			jumpItemTemplate: '<li class="firenav-jump-section-item">{{ jump_link }}</li>',
+			jumpLinkClass: 'firenav-jump-link',
+			jumpSectionActiveClass: 'firenav-jump-active',
+			jumpSectionTemplate: '<ul class="firenav-jump-section-{{ depth }}"></ul>',
 			offset: 0,
 			section: ".firenav-section",
 			speed: 800,
@@ -47,7 +51,10 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 		var data = fireNav._utilities.getData(jumpNav.nav);
 
 		jumpNav.data = {
-			firenavActiveClass: data.firenavActiveClass,
+			jumpItemTemplate: data.firenavJumpItemTemplate,
+			jumpLinkClass: data.firenavJumpLinkClass,
+			jumpSectionActiveClass: data.firenavJumpSectionActiveClass,
+			jumpSectionTemplate: data.firenavJumpSectionTemplate,
 			offset: (data.firenavOffset) ? parseInt(data.firenavOffset) : undefined,
 			section: data.firenavSection,
 			speed: (data.firenavSpeed) ? parseInt(data.firenavSpeed) : undefined,
@@ -66,6 +73,7 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 		jumpNav.sections = document.querySelectorAll(jumpNav.options.section);
 		if(jumpNav.sections.length === 0) return;
 
+		// Ensures that every section has an id
 		function createSectionIds() {
 			for(var i = 0; i < jumpNav.sections.length; i++) {
 				var data = fireNav._utilities.getData(jumpNav.sections[i]);
@@ -80,52 +88,93 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 			return true;
 		}
 
-		function createNavListItem(elm) {
-			var li = document.createElement('LI');
-			var a = document.createElement('A');
-			var data = fireNav._utilities.getData(elm);
-			a.href = '#' + elm.id;
-			a.innerText = (data.firenavJumpName) ? data.firenavJumpName : elm.id;
-			li.appendChild(a);
-			return li;
-		}
+		// Parse tags from jump section template
+		function parseJumpSectionTemplateTags(template, depth) {
+			var result = template;
 
-		function getMathingParents(elm, sel) {
-			var matches = [];
-			elm = (typeof elm.parentNode !== 'undefined') ? elm.parentNode : elm;
-			while(elm) {
-				if(fireNav._utilities.matchesSelector(elm, sel)) matches.push(elm);
-				elm = elm.parentNode;
+			var depthTag = fireNav._utilities.getTemplateTagRegex('depth');
+			if (result.search(depthTag) !== -1) {
+				result = result.replace(depthTag, (depth + 1).toString());
 			}
-			return matches;
+
+			return result;
 		}
 
+		// Parse tags from jump item template
+		function parseJumpItemTemplateTags(elm, template, depth) {
+			var result = template;
+			var data = fireNav._utilities.getData(elm);
+
+			var depthTag = fireNav._utilities.getTemplateTagRegex('depth');
+			if (result.search(depthTag) !== -1) {
+				result = result.replace(depthTag, (depth + 1).toString());
+			}
+
+			var jumpLinkTag = fireNav._utilities.getTemplateTagRegex('jump_link');
+			if (result.search(jumpLinkTag) !== -1) {
+				var href = '#' + elm.id;
+				var name = (data.firenavJumpName) ? data.firenavJumpName : elm.id;
+				var linkClass = jumpNav.options.jumpLinkClass;
+				var link = '<a href="' + href + '" class="' + linkClass + '">' + name + '</a>';
+				result = result.replace(jumpLinkTag, link);
+			}
+
+			var jumpNameTag = fireNav._utilities.getTemplateTagRegex('jump_name');
+			if (result.search(jumpNameTag) !== -1) {
+				var jumpName = (data.firenavJumpName) ? data.firenavJumpName : elm.id;
+				result = result.replace(jumpNameTag, jumpName);
+			}
+
+			return result;
+		}
+
+		// Retuns a new dom element for a jumpNav list item
+		function createNavListSection(depth) {
+			var template = jumpNav.options.jumpSectionTemplate;
+			var markup = parseJumpSectionTemplateTags(template, depth);
+			var section = fireNav._utilities.createDomElementFromString(markup);
+			return section;
+		}
+
+		// Returns a new dom element for a jumpNav list section
+		function createNavListItem(elm, depth) {
+			var data = fireNav._utilities.getData(elm);
+			var template = jumpNav.options.jumpItemTemplate;
+			var markup = parseJumpItemTemplateTags(elm, template, depth);
+			var item = fireNav._utilities.createDomElementFromString(markup);
+			jumpNav.jumpLinks.push(item);
+			return item;
+		}
+
+		// Returns all sections at a given depth that match the selector
 		function getSectionsAtDepth(array, sel, depth) {
 			var result = [];
 			for(var i = 0; i < array.length; i++) {
-				if(getMathingParents(array[i], sel).length === depth) {
+				if(fireNav._utilities.getMathingParents(array[i], sel).length === depth) {
 					result.push(array[i]);
 				}
 			}
 			return result;
 		}
 
-		function processSection(array, sel, list) {
+		// Create jumpNav link elements based on sections
+		function processSection(array, sel, list, depth) {
 			for(var i = 0; i < array.length; i++) {
-				var li = createNavListItem(array[i]);
+				var item = createNavListItem(array[i], depth);
 
 				var children = array[i].querySelectorAll(sel);
 				if(children.length > 0) {
-					var ul = document.createElement('UL');
-					li.appendChild(ul);
+					var section = createNavListSection(depth);
+					item.appendChild(section);
 				}
 
-				var parents = getMathingParents(array[i], sel);
+				var parents = fireNav._utilities.getMathingParents(array[i], sel);
 				var parent = (parents.length > 0) ? parents.shift() : undefined;
-				insertElement(parent, li, list);
+				insertElement(parent, item, list);
 			}
 		}
 
+		// Inserts a jumpNav list item within it's parent
 		function insertElement(parent, elm, list) {
 			if(typeof parent !== 'undefined') {
 				var link = '#' + parent.id;
@@ -137,18 +186,20 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 			}
 		}
 
+		// Recursive jumpNav section builder
 		function loadSections(depth, array, list, sel) {
 			var section = getSectionsAtDepth(array, sel, depth);
 			if(section.length === 0) return;
-			processSection(section, sel, list);
+			processSection(section, sel, list, depth);
 			depth++;
 			loadSections(depth, array, list, sel);
 		}
 
+		// Construct jumpNav navigation
 		function constructNav() {
 			var depth = 0;
 			var array = jumpNav.sections;
-			var list = document.createElement('UL');
+			var list = createNavListSection(0);
 			var sel = jumpNav.options.section;
 
 			loadSections(depth, array, list, sel);
@@ -174,18 +225,34 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 		// Adds class to active link, removes class from previous active link
 		function updateActiveLinkClass(opts) {
 			for(var i = 0; i < jumpNav.jumpLinks.length; i++) {
-				var link = jumpNav.jumpLinks[i].getElementsByTagName('A')[0];
+				var item = jumpNav.jumpLinks[i];
+				var link = item.querySelector('a');
 
 				if(opts.prevNode) {
-					if(link.hash === '#' + opts.prevNode) {
-						fireNav._utilities.removeClass(jumpNav.jumpLinks[i], opts.className);
-					}
+					if(link.hash === '#' + opts.prevNode) fireNav._utilities.removeClass(item, opts.className);
 				}
 
 				if(opts.nextNode) {
-					if(link.hash === '#' + opts.nextNode) {
-						fireNav._utilities.addClass(jumpNav.jumpLinks[i], opts.className);
-					}
+					if(link.hash === '#' + opts.nextNode) fireNav._utilities.addClass(item, opts.className);
+				}
+			}
+
+			var id = opts.nextNode;
+			var elm = null;
+
+			for(var j = 0; j < jumpNav.sections.length; j++) {
+				if(jumpNav.sections[j].id === id) {
+					elm = jumpNav.sections[j];
+				}
+			}
+
+			if(elm)  {
+				var data = fireNav._utilities.getData(elm);
+				var jumpClass = (data.firenavJumpClass) ? data.firenavJumpClass : '';
+				if(jumpNav.activeJumpClass !== '') fireNav._utilities.removeClass(jumpNav.nav, jumpNav.activeJumpClass);
+				if(jumpClass !== '') {
+					jumpNav.activeJumpClass = jumpClass;
+					fireNav._utilities.addClass(jumpNav.nav, jumpClass);
 				}
 			}
 		}
@@ -198,7 +265,7 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 				updateActiveLinkClass({
 					prevNode: (lastActiveHashNode) ? lastActiveHashNode.id : null,
 					nextNode: (jumpNav.activeHashNode) ? jumpNav.activeHashNode.id : null,
-					className: jumpNav.options.activeClass
+					className: jumpNav.options.jumpSectionActiveClass
 				});
 			}
 		}
@@ -222,7 +289,7 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 								updateActiveLinkClass({
 									prevNode: (lastActiveHashNode) ? lastActiveHashNode.id : null,
 									nextNode: (jumpNav.activeHashNode) ? jumpNav.activeHashNode.id : null,
-									className: jumpNav.options.activeClass
+									className: jumpNav.options.jumpSectionActiveClass
 								});
 							}
 
@@ -240,7 +307,6 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 							}, 20);
 
 							isScrolling = false;
-
 						}
 					});
 				
@@ -266,6 +332,7 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 			}
 		}
 
+		// Initialize jumpNav
 		function init() {
 
 			if(!createSectionIds()) return;
@@ -424,55 +491,30 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 			}
 		},
 
-		// Remove class from node's classList
-		removeClass: function(node, rmClass) {
-			if (node.classList) {
-					node.classList.remove(rmClass);
-			} else {
-				node.className = node.className.replace(new RegExp('(^|\\b)' + rmClass.split(' ').join('|') + '(\\b|$)', 'gi'), ' ');
-			}
+		// Clean String
+		cleanString: function(string) {
+			return string.toLowerCase().replace(/^\s+|\s+$/g, '').replace(/&#{0,1}[a-z0-9]+;/ig, '').replace(/[^\w\s]/gi, '').replace(/\s+/g, '-');
 		},
 
-		// Returns true if node has className
-		hasClass: function(node, className) {
-			return (node.classList) ? node.classList.contains(className) : new RegExp('(^| )' + className + '( |$)', 'gi').test(node.className);
+		// Create a dom element from HTML markup
+		createDomElementFromString: function(markup) {
+			var d = document.createElement('div');
+			d.innerHTML = markup;
+			return d.firstChild;
 		},
 
-		getBoolean: function(string) {
-			return (string.toLowerCase() === 'true');
-		},
-
-		// Returns the index of a node amongst that node's siblings
-		getNodeIndex: function(node) {
-			var index = 0;
-			if(node !== null) {
-				while ( (node = node.previousSibling) ) {
-					if (node.nodeType != 3 || !/^\s*$/.test(node.data)) {
-						index++;
-					}
-				}
-				return index;
-			} else {
-				return -1;
-			}
-		},
-
-		// Returns true if element matches selector
-		matchesSel: function(elm, sel){
-			var matches = (elm.document || elm.ownerDocument).querySelectorAll(sel);
-			var i = 0;
-			while (matches[i] && matches[i] !== elm) { i++; }
-			return matches[i] ? true : false;
-		},
-
-		matchesSelector: function(elm, sel) {
-			var all = document.querySelectorAll(sel);
-			for (var i = 0; i < all.length; i++) {
-				if (all[i] === elm) {
-					return true;
+		// Extend defaults into opts, returns options - comment below prevents warning about hasOwnProperty in gulp
+		/* jshint -W001 */
+		extend: function(opts, def) {
+			var options = opts || {};
+			var defaults = def || {};
+			for (var opt in defaults) {
+				defaults.hasOwnProperty = defaults.hasOwnProperty || Object.prototype.hasOwnProperty;
+				if (defaults.hasOwnProperty(opt) && !options.hasOwnProperty(opt)) {
+					options[opt] = defaults[opt];
 				}
 			}
-			return false;
+			return options;
 		},
 
 		// Format data-attribute key
@@ -485,6 +527,11 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 				temp.push(key[i].charAt(0).toUpperCase() + key[i].substr(1).toLowerCase());
 			}
 			return temp.join('');
+		},
+
+		// Parses boolean from string
+		getBoolean: function(string) {
+			return (string.toLowerCase() === 'true');
 		},
 
 		// Shim for element.dataset
@@ -505,30 +552,84 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 			}
 		},
 
-		// Extend defaults into opts, returns options - comment below prevents warning about hasOwnProperty in gulp
-		/* jshint -W001 */
-		extend: function(opts, def) {
-			var options = opts || {};
-			var defaults = def || {};
-			for (var opt in defaults) {
-				defaults.hasOwnProperty = defaults.hasOwnProperty || Object.prototype.hasOwnProperty;
-				if (defaults.hasOwnProperty(opt) && !options.hasOwnProperty(opt)) {
-					options[opt] = defaults[opt];
+		// Returns an array of parent elements that match selector
+		getMathingParents: function(elm, sel) {
+			var matches = [];
+			elm = (typeof elm.parentNode !== 'undefined') ? elm.parentNode : elm;
+			while(elm) {
+				if(fireNav._utilities.matchesSelector(elm, sel)) matches.push(elm);
+				elm = elm.parentNode;
+			}
+			return matches;
+		},
+
+		// Returns the index of a node amongst that node's siblings
+		getNodeIndex: function(node) {
+			var index = 0;
+			if(node !== null) {
+				while ( (node = node.previousSibling) ) {
+					if (node.nodeType != 3 || !/^\s*$/.test(node.data)) {
+						index++;
+					}
 				}
-			}
-			return options;
-		},
-
-		// Removes properties from object that are 'undefined'
-		removeUndefined: function(object) {
-			for(var key in object) {
-				if(typeof object[key] === "undefined") delete object[key];
+				return index;
+			} else {
+				return -1;
 			}
 		},
 
-		// Clean String
-		cleanString: function(string) {
-			return string.toLowerCase().replace(/^\s+|\s+$/g, '').replace(/&#{0,1}[a-z0-9]+;/ig, '').replace(/[^\w\s]/gi, '').replace(/\s+/g, '-');
+		// Returns left scroll amount of node
+		getScrollLeft: function(node) {
+			return node.getBoundingClientRect().left;
+		},
+
+		// Returns top scroll amount of node
+		getScrollTop: function(node) {
+			return node.getBoundingClientRect().top;
+		},
+
+		// Create a regex string for parsing a template tag
+		getTemplateTagRegex: function(tag) {
+			return new RegExp('{{\\s*' + tag + '\\s*}}', 'g');
+		},
+
+		// Returns left scroll amount of window 
+		getWindowScrollLeft: function() {
+			var result = 0;
+			if ('pageXOffset' in window) {
+				result =  window.pageXOffset;
+			} else {
+				result = document.documentElement.scrollLeft / fireNav._utilities.getZoomAmount();
+			}
+			return result;
+		},
+
+		// Returns top scroll amount of window
+		getWindowScrollTop: function() {
+			var result = 0;
+			if ('pageXOffset' in window) {
+				result = window.pageYOffset;
+			} else {
+				result = document.documentElement.scrollTop / fireNav._utilities.getZoomAmount();
+			}
+			return result;
+		},
+
+		// Returns the zoom amount
+		getZoomAmount: function() {
+			var result = 1;
+			if (document.body.getBoundingClientRect) {
+				var rect = document.body.getBoundingClientRect();
+				var physicalW = rect.right - rect.left;
+				var logicalW = document.body.offsetWidth;
+				result = (physicalW / logicalW);
+			}
+			return result;
+		},
+
+		// Returns true if node has className
+		hasClass: function(node, className) {
+			return (node.classList) ? node.classList.contains(className) : new RegExp('(^| )' + className + '( |$)', 'gi').test(node.className);
 		},
 
 		// Custom events will bind to these htmlEvents in ie < 9
@@ -549,43 +650,43 @@ var V = (window.jQuery) ? $.Velocity : Velocity;
 			}
 		},
 
-		getZoomAmount: function() {
-			var result = 1;
-			if (document.body.getBoundingClientRect) {
-				var rect = document.body.getBoundingClientRect();
-				var physicalW = rect.right - rect.left;
-				var logicalW = document.body.offsetWidth;
-				result = (physicalW / logicalW);
+		// Returns true if element matches selector
+		matchesSelector: function(elm, sel) {
+			var all = document.querySelectorAll(sel);
+			for (var i = 0; i < all.length; i++) {
+				if (all[i] === elm) {
+					return true;
+				}
+			}
+			return false;
+		},
+
+		// Parses Json object from string
+		parseJson: function(string) {
+			var result;
+			try {
+				result = JSON.parse(string);
+			}
+			catch (e) {
+				result = string;
 			}
 			return result;
 		},
-
-		getWindowScrollTop: function() {
-			var result = 0;
-			if ('pageXOffset' in window) {
-				result = window.pageYOffset;
+		
+		// Remove class from node's classList
+		removeClass: function(node, rmClass) {
+			if (node.classList) {
+					node.classList.remove(rmClass);
 			} else {
-				result = document.documentElement.scrollTop / fireNav._utilities.getZoomAmount();
+				node.className = node.className.replace(new RegExp('(^|\\b)' + rmClass.split(' ').join('|') + '(\\b|$)', 'gi'), ' ');
 			}
-			return result;
 		},
 
-		getWindowScrollLeft: function() {
-			var result = 0;
-			if ('pageXOffset' in window) {
-				result =  window.pageXOffset;
-			} else {
-				result = document.documentElement.scrollLeft / fireNav._utilities.getZoomAmount();
+		// Removes properties from object that are 'undefined'
+		removeUndefined: function(object) {
+			for(var key in object) {
+				if(typeof object[key] === "undefined") delete object[key];
 			}
-			return result;
-		},
-
-		getScrollTop: function(node) {
-			return node.getBoundingClientRect().top;
-		},
-
-		getScrollLeft: function(node) {
-			return node.getBoundingClientRect().left;
 		}
 	};
 
