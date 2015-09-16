@@ -9,7 +9,7 @@
 
 	<script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
 	<script src="../build/js/vendor/velocity.min.js"></script>
-	<script src="../build/js/fireNav.js"></script>
+	<script src="../build/js/jquery.fireNav.js"></script>
 
 </head>
 <body class="firenav-tab">
@@ -19,7 +19,7 @@
 	</div>
 
 	<div class="wrap">
-		<div id="tab-menu" class="clearfix" data-firenav-active-tab-class="firenav-tab-active" data-firenav-active-tab-link-class="firenav-tab-link-active" data-firenav-load-hash="false" data-firenav-tabs=".tab"></div>
+		<div id="tab-menu" class="clearfix" data-firenav-active-tab-class="firenav-tab-active" data-firenav-active-tab-link-class="firenav-tab-link-active"></div>
 		<div class="tab" data-firenav-tab="Animals">
 			<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Iusto adipisci temporibus est, similique aliquam ea exercitationem ullam suscipit ad quidem! Dicta odit sequi provident, eius debitis aliquam aut ad similique.</p>
 			<p>Tempora tenetur doloribus ab voluptas atque sint minus distinctio quod veniam unde placeat laboriosam pariatur dolorem dolore mollitia at, accusantium voluptates accusamus repudiandae ea? Velit ducimus similique eveniet nemo pariatur.</p>
@@ -80,7 +80,13 @@
 
 	<script>
 		//FireNav.tabs('#tab-menu', {loadHash: true});
-		$('#tab-menu').fireNavTabs();
+		$('#tab-menu').each(function () {
+			$(this).data({
+				tabs: $(this).siblings('.tab')
+			});
+		}).fireNavTabs({
+			loadHash: false
+		});
 	</script>
 
 </body>

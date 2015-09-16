@@ -4,7 +4,7 @@
   "description": "A responsive navigation framework.",
   "devDependencies": {
     "browser-sync": "^2.0.0",
-    "browserify": "^9.0.3",
+    "browserify": "^9.0.4",
     "gulp": "^3.8.10",
     "gulp-inject-string": "0.0.2",
     "gulp-jshint": "^1.9.0",

@@ -9,7 +9,7 @@ var gulp = require('gulp'),
 	uglify = require('gulp-uglify'),
 	util = require('gulp-util');
 
-var version = '0.2.0';
+var version = '0.3.0';
 var versionComment = '/*! fireNav (' + version + ') (C) 2014 CJ O\'Hara. MIT @license: en.wikipedia.org/wiki/MIT_License */\n';
 var velocityComment = '/*! VelocityJS.org (C) 2014 Julian Shapiro. MIT @license: en.wikipedia.org/wiki/MIT_License */\n/*! VelocityJS.org jQuery Shim (C) 2014 The jQuery Foundation. MIT @license: en.wikipedia.org/wiki/MIT_License. */\n';
 var velocity = 'var Velocity = require(\'velocity-animate\');\n';
@@ -25,20 +25,20 @@ gulp.task('sass', function() {
 });
 
 gulp.task('lint', function() {
-	return gulp.src('build/js/fireNav.js')
+	return gulp.src('build/js/jquery.fireNav.js')
 		.pipe(jshint())
 		.pipe(jshint.reporter('default'));
 });
 
 gulp.task('min', ['lint'], function() {
-	return gulp.src('build/js/fireNav.js')
+	return gulp.src('build/js/jquery.fireNav.js')
 		.pipe(uglify())
 		.pipe(rename({suffix: '.min'}))
 		.pipe(gulp.dest('dist'));
 });
 
 gulp.task('velocity', ['lint'], function() {
-	return gulp.src('build/js/fireNav.js')
+	return gulp.src('build/js/jquery.fireNav.js')
 		.pipe(inject.prepend(velocity))
 		.pipe(rename({suffix: '.velocity'}))
 		.pipe(gulp.dest('dist'));
@@ -50,20 +50,20 @@ gulp.task('browserify', ['velocity'], function() {
 		return b.bundle();
 	});
 
-	return gulp.src('dist/fireNav.velocity.js')
+	return gulp.src('dist/jquery.fireNav.velocity.js')
 		.pipe(browserified)
 		.pipe(uglify())
 		.pipe(gulp.dest('dist'));
 });
 
 gulp.task('versionComment', ['min'], function() {
-	return gulp.src(['dist/fireNav.min.js'])
+	return gulp.src(['dist/jquery.fireNav.min.js'])
 		.pipe(inject.prepend(versionComment))
 		.pipe(gulp.dest('dist'));
 });
 
 gulp.task('velocityComment', ['browserify'], function() {
-	return gulp.src(['dist/fireNav.velocity.js'])
+	return gulp.src(['dist/jquery.fireNav.velocity.js'])
 		.pipe(inject.prepend(versionComment + velocityComment))
 		.pipe(gulp.dest('dist'));
 });
