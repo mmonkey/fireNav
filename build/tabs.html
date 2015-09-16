@@ -79,14 +79,17 @@
 	</div>
 
 	<script>
-		//FireNav.tabs('#tab-menu', {loadHash: true});
-		$('#tab-menu').each(function () {
-			$(this).data({
-				tabs: $(this).siblings('.tab')
-			});
-		}).fireNavTabs({
-			loadHash: false
-		});
+		$('#tab-menu').fireNavTabs();
+
+		// Multiple tab menus on one page
+		// $('#tab-menu').each(function () {
+		// 	$(this).data({
+		// 		tabs: $(this).siblings('.tab')
+		// 	});
+		// }).fireNavTabs({
+		// 	loadHash: false
+		// });
+
 	</script>
 
 </body>

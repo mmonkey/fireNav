@@ -2,15 +2,22 @@
 ;(function ($, window, document, undefined) {
 	var fireNavJump = "fireNavJump";
 	var fireNavTabs = "fireNavTabs";
-	var jumpDefaults = {
 
+	var jumpDefaults = {
+		jumpItemTemplate: '<li class="firenav-jump-section-item">{{ jump_link }}</li>',
+		jumpLinkClass: 'firenav-jump-link',
+		jumpSectionActiveClass: 'firenav-jump-active',
+		jumpSectionTemplate: '<ul class="firenav-jump-section-{{ depth }}"></ul>',
+		offset: 0,
+		speed: 800,
+		updateHash: false,
+		watchScroll: true
 	};
 
 	var tabDefaults = {
 		activeTabClass: 'firenav-tab-active',
 		activeTabLinkClass: 'firenav-tab-link-active',
-		loadHash: true,
-		tab: {}
+		loadHash: true
 	};
 
 	function FireNavJump (el, options, sel) {
@@ -19,7 +26,7 @@
 		this.options = options;
 		this._name = fireNavJump;
 		this._defaults = jumpDefaults;
-		this._attribures = this.getData(this.$el.data());
+		this._attribures = utilities.getData(this.$el.data());
 		this.options = $.extend({}, jumpDefaults, options, this._attribures);
 
 		this.init();
@@ -41,6 +48,43 @@
 
 		init: function () {
 			var nav = this;
+
+			// Do not continue if velocity isn't loaded
+			if ($.type($.Velocity) === 'undefined') {
+				console.log('%cWARNING: fireSlider requires velocity.js to run correctly.',
+					'background: #E82C0C; color: white; padding: 0 12px;');
+				return false;
+			}
+
+			if (!(nav.options.sections instanceof jQuery)) {
+				nav.options.sections = $('.firenav-section');
+			}
+
+			if (!this.createSectionIds()) return false;
+
+		},
+
+		createSectionIds: function() {
+			var nav = this;
+
+			nav.options.sections.each(function (i) {
+				var data = $(this).data();
+				var name = (data.firenavJumpName) ? data.firenavJumpName : '';
+				var parent = $(this).parents(nav.options.sections.selector).first();
+
+				var id = utilities.cleanString(name);
+				id = (parent.length) ? parent.get(0).id + '-' + id : id;
+				id = ($(this).get(0).id) ? $(this).get(0).id : id;
+				$(this).attr('id', id);
+
+				if ($(this).get(0).id === '' && id === '') {
+					console.log('%cWARNING: Neither "data-firenav-jump-name" or "id" was found on section ' + (i + 1) + '.',
+						'background: #E82C0C; color: white; padding: 0px 12px;');
+					return false;
+				}
+			});
+
+			return true;
 		}
 
 	};
@@ -50,7 +94,9 @@
 		init: function () {
 			var nav = this;
 
-			if (!(nav.options.tabs instanceof jQuery)) return false;
+			if (!(nav.options.tabs instanceof jQuery)) {
+				nav.options.tabs = $('.tab');
+			}
 
 			this.constructTabNav();
 			this.addListeners();
