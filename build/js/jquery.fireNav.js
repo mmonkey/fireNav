@@ -60,8 +60,19 @@
 				nav.options.sections = $('.firenav-section');
 			}
 
-			if (!this.createSectionIds()) return false;
+			if (!nav.createSectionIds()) return false;
 
+			nav.jumpLinks = $();
+			nav.constructJumpNav();
+
+			if(nav.options.updateHash) {
+			 	nav.loadWindowHash();
+			} else {
+				nav.updateActiveSection();
+			}
+
+			nav.addJumpNavClickEvents();
+			// nav.addJumpNavEventListeners();
 		},
 
 		createSectionIds: function() {
@@ -85,7 +96,196 @@
 			});
 
 			return true;
+		},
+
+		constructJumpNav: function () {
+			var nav = this;
+			var depth = 0;
+			var sections = nav.options.sections;
+			var list = nav.createNavListSection(0);
+			var sel = nav.options.sections.selector;
+
+			nav.loadSections(depth, sections, list, sel);
+			nav.$el.append(list);
+		},
+
+		createNavListSection: function (depth) {
+			var nav = this;
+			var markup = nav.parseJumpSectionTemplateTags(nav.options.jumpSectionTemplate, depth);
+			return $(markup);
+		},
+
+		parseJumpSectionTemplateTags: function (template, depth) {
+			var nav = this;
+			var result = template;
+
+			var depthTag = utilities.getTemplateTagRegex('depth');
+			if (result.search(depthTag) !== -1) {
+				result = result.replace(depthTag, (depth + 1).toString());
+			}
+
+			return result;
+		},
+
+		loadSections: function (depth, sections, list, sel) {
+			var nav = this;
+			var section = nav.getSectionAtDepth(depth, sections, sel);
+			if (section.length === 0) return;
+			nav.processSection(depth, section, list, sel);
+			depth++;
+			nav.loadSections(depth, sections, list, sel);
+		},
+
+		getSectionAtDepth: function (depth, sections, sel) {
+			var nav = this;
+			var results = $();
+			sections.each(function () {
+				if ($(this).parents(sel).length === depth) {
+					results = results.add($(this));
+				}
+			});
+
+			return results;
+		},
+
+		processSection: function (depth, section, list, sel) {
+			var nav = this;
+			section.each(function () {
+				var item = nav.createNavListItem($(this), depth);
+				if ($(this).find(sel).length > 0) {
+					var section = nav.createNavListSection(depth);
+					item.append(section);
+				}
+
+				var parent = $(this).parents(sel).first();
+				if (parent.length > 0) {
+					var link = '#' + parent.get(0).id;
+					var target = list.find('a[href="' + link + '"]').parent();
+					var targetUL = target.find('ul');
+					targetUL.append(item);
+				} else {
+					list.append(item);
+				}
+			});
+		},
+
+		createNavListItem: function (el, depth) {
+			var nav = this;
+			var data = el.data();
+			var markup = nav.parseJumpItemTemplateTags(el, nav.options.jumpItemTemplate, depth);
+			var item = $(markup);
+			nav.jumpLinks = nav.jumpLinks.add(item);
+			return item;
+		},
+
+		parseJumpItemTemplateTags: function (el, template, depth) {
+			var nav = this;
+			var result = template;
+			var data = el.data();
+
+			var depthTag = utilities.getTemplateTagRegex('depth');
+			if (result.search(depthTag) !== -1) {
+				result = result.replace(depthTag, (depth + 1).toString());
+			}
+
+			var jumpLinkTag = utilities.getTemplateTagRegex('jump_link');
+			if (result.search(jumpLinkTag) !== -1) {
+				var href = '#' + el.get(0).id;
+				var name = (data.firenavJumpName) ? data.firenavJumpName : el.get(0).id;
+				var linkClass = nav.options.jumpLinkClass;
+				var link = '<a href="' + href + '" class="' + linkClass + '">' + name + '</a>';
+				result = result.replace(jumpLinkTag, link);
+			}
+
+			var jumpNameTag = utilities.getTemplateTagRegex('jump_name');
+			if (result.search(jumpNameTag) !== -1) {
+				var jumpName = (data.firenavJumpName) ? data.firenavJumpName : el.get(0).id;
+				result = result.replace(jumpNameTag, jumpName);
+			}
+
+			return result;
+		},
+
+		loadWindowHash: function () {
+			var nav = this;
+			var hash = window.location.hash;
+
+			nav.jumpLinks.each(function () {
+				if ($(this).find('a').attr('href') === hash) {
+					nav.activeSection = $(hash);
+				}
+			});
+
+			nav.updateActiveLinkClass(undefined, nav.activeSection, nav.options.jumpSectionActiveClass);
+		},
+
+		updateActiveSection: function () {
+			var nav = this;
+			var active = nav.getActiveSection();
+			if (nav.activeSection !== active) {
+				var prev = (nav.activeSection) ? nav.activeSection : $();
+				nav.activeSection = active;
+				nav.updateActiveLinkClass(prev, active, nav.options.jumpSectionActiveClass);
+			}
+		},
+
+		updateActiveLinkClass: function (prev, active, className) {
+			var nav = this;
+
+			nav.jumpLinks.each(function () {
+				if (prev && $(this).find('a').attr('href') === '#' + prev.attr('id')) $(this).removeClass(className);
+				if ($(this).find('a').attr('href') === '#' + active.attr('id')) $(this).addClass(className);
+			});
+
+			if (active.length > 0) {
+				var data = active.data();
+				var jumpClass = (data.firenavJumpClass) ? data.firenavJumpClass : '';
+				
+				if (nav.activeJumpClass !== '') {
+					nav.$el.removeClass(nav.activeJumpClass);
+				}
+
+				if (jumpClass !== '') {
+					nav.activeJumpClass = jumpClass;
+					nav.$el.addClass(jumpClass);
+				}
+			}
+		},
+
+		getActiveSection: function () {
+			var nav = this;
+			var result = $();
+			var max = -1;
+			nav.options.sections.each(function () {
+				var elemY = $(this).scrollTop();
+				if (Math.floor(elemY) <= nav.options.offset) {
+					if (elemY > max || max === -1) {
+						max = elemY;
+						result = $(this);
+					}
+				}
+			});
+
+			return result;
+		},
+
+		addJumpNavClickEvents: function() {
+			var nav = this;
+			nav.jumpLinks.find('a').each(function () {
+				$(this).click(function (e) {
+					e.preventDefault();
+					var id = $(this).attr('href');
+					var section = nav.options.sections.filter($(this).attr('href')).velocity("scroll", {duration: nav.options.speed, easing: "ease-in-out", offset: nav.options.offset});
+					var prev = nav.activeSection;
+					if (section !== prev) {
+						nav.activeSection = section;
+						nav.updateActiveLinkClass(prev, section, nav.options.jumpSectionActiveClass);
+					}
+				});
+			});
 		}
+
+
 
 	};
 
@@ -192,7 +392,13 @@
 				});
 			});
 			return data;
+		},
+
+		// Create a regex string for parsing a template tag
+		getTemplateTagRegex: function(tag) {
+			return new RegExp('{{\\s*' + tag + '\\s*}}', 'g');
 		}
+
 	};
 
 	$.fn[fireNavJump] = function (options) {
