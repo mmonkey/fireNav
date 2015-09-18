@@ -72,7 +72,9 @@
 			}
 
 			nav.addJumpNavClickEvents();
-			// nav.addJumpNavEventListeners();
+
+			nav.initFunctions();
+			nav.bindEvents();
 		},
 
 		createSectionIds: function() {
@@ -222,11 +224,28 @@
 		updateActiveSection: function () {
 			var nav = this;
 			var active = nav.getActiveSection();
-			if (nav.activeSection !== active) {
+			if (!(nav.activeSection instanceof jQuery) || !nav.activeSection.is(active)) {
 				var prev = (nav.activeSection) ? nav.activeSection : $();
 				nav.activeSection = active;
 				nav.updateActiveLinkClass(prev, active, nav.options.jumpSectionActiveClass);
 			}
+		},
+
+		getActiveSection: function () {
+			var nav = this;
+			var result = $();
+			var max = -1;
+			nav.options.sections.each(function () {
+				var elemY = $(this).get(0).getBoundingClientRect().top;
+				if (Math.floor(elemY) <= nav.options.offset) {
+					if (elemY > max || max === -1) {
+						max = elemY;
+						result = $(this);
+					}
+				}
+			});
+
+			return result;
 		},
 
 		updateActiveLinkClass: function (prev, active, className) {
@@ -234,10 +253,10 @@
 
 			nav.jumpLinks.each(function () {
 				if (prev && $(this).find('a').attr('href') === '#' + prev.attr('id')) $(this).removeClass(className);
-				if ($(this).find('a').attr('href') === '#' + active.attr('id')) $(this).addClass(className);
+				if (active && $(this).find('a').attr('href') === '#' + active.attr('id')) $(this).addClass(className);
 			});
 
-			if (active.length > 0) {
+			if (active && active.length > 0) {
 				var data = active.data();
 				var jumpClass = (data.firenavJumpClass) ? data.firenavJumpClass : '';
 				
@@ -252,41 +271,72 @@
 			}
 		},
 
-		getActiveSection: function () {
-			var nav = this;
-			var result = $();
-			var max = -1;
-			nav.options.sections.each(function () {
-				var elemY = $(this).scrollTop();
-				if (Math.floor(elemY) <= nav.options.offset) {
-					if (elemY > max || max === -1) {
-						max = elemY;
-						result = $(this);
-					}
-				}
-			});
-
-			return result;
-		},
-
-		addJumpNavClickEvents: function() {
+		addJumpNavClickEvents: function () {
 			var nav = this;
 			nav.jumpLinks.find('a').each(function () {
 				$(this).click(function (e) {
 					e.preventDefault();
 					var id = $(this).attr('href');
-					var section = nav.options.sections.filter($(this).attr('href')).velocity("scroll", {duration: nav.options.speed, easing: "ease-in-out", offset: nav.options.offset});
-					var prev = nav.activeSection;
-					if (section !== prev) {
-						nav.activeSection = section;
-						nav.updateActiveLinkClass(prev, section, nav.options.jumpSectionActiveClass);
-					}
+					nav.options.sections.filter($(this).attr('href')).velocity("scroll",
+						{duration: nav.options.speed, easing: "ease-in-out", offset: nav.options.offset, complete: function () {
+							var prev = nav.activeSection;
+							if (!$(this).is(prev)) {
+								nav.activeSection = $(this);
+								nav.updateActiveLinkClass(prev, $(this), nav.options.jumpSectionActiveClass);
+							}
+							nav.updatePageUrl('#' + $(this).attr('id'));
+						}
+					});
 				});
 			});
+		},
+
+		updatePageUrl: function (hash) {
+			var nav = this;
+
+			if (nav.options.updateHash) {
+				if (history.replaceState) {
+					history.replaceState(undefined, undefined, hash);
+				} else if (window.location.replace) {
+					window.location.replace(hash);
+				}
+			}
+		},
+
+		initFunctions: function () {
+			var nav = this;
+
+			nav.destroy = function () {
+				nav.$el.trigger('fireNav:jump:destroy');
+			};
+
+			$(window).scroll(function () {
+				nav.$el.trigger('fireNav:jump:scroll');
+			});
+		},
+
+		bindEvents: function () {
+			var nav = this;
+
+			nav.$el.on('fireNav:jump:destroy', function () {
+				nav.unbindEvents();
+				nav.$el.empty();
+			});
+
+			nav.$el.on('fireNav:jump:scroll', function () {
+				var current = nav.activeSection;
+				nav.updateActiveSection();
+				if (nav.activeSection !== current) {
+					nav.updatePageUrl('#' + nav.activeSection.get(0).id);
+				}
+			});
+		},
+
+		unbindEvents: function () {
+			var nav = this;
+
+			nav.$el.off('fireNav:jump:scroll');
 		}
-
-
-
 	};
 
 	FireNavTabs.prototype = {
@@ -312,6 +362,9 @@
 			this.activeLink = (this.options.loadHash && loadedLink.length) ? loadedLink : this.$el.find('a').first();
 			this.activeTab = (this.options.loadHash && loadedTab.length) ? loadedTab : this.options.tabs.first();
 			this.updateActiveTab(this.activeLink, this.activeTab);
+
+			this.initFunctions();
+			this.bindEvents();
 		},
 
 		constructTabNav: function () {
@@ -368,8 +421,23 @@
 			link.parent('li').addClass(nav.options.activeTabLinkClass);
 			nav.activeLink = link;
 			nav.activeTab = tab;
-		}
+		},
 
+		initFunctions: function () {
+			var nav = this;
+
+			nav.destroy = function () {
+				nav.$el.trigger('fireNav:tabs:destroy');
+			};
+		},
+
+		bindEvents: function () {
+			var nav = this;
+
+			nav.$el.on('fireNav:tabs:destroy', function () {
+				nav.$el.empty();
+			});
+		}
 	};
 
 	var utilities = {
@@ -407,7 +475,7 @@
 
 			if ($.data(this, fireNavJump)) {
 				$(this).data(fireNavJump).destroy();
-				$(this).removeData(fireNav);
+				$(this).removeData(fireNavJump);
 			}
 			
 			$.data(this, fireNavJump, new FireNavJump(this, options, sel));
