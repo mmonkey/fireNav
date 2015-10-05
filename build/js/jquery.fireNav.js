@@ -1,4 +1,4 @@
-/*! fireNav (0.3.0) (C) CJ O'Hara. MIT @license: en.wikipedia.org/wiki/MIT_License */
+/*! fireNav (0.3.1) (C) CJ O'Hara. MIT @license: en.wikipedia.org/wiki/MIT_License */
 ;(function ($, window, document, undefined) {
 	var fireNavJump = "fireNavJump";
 	var fireNavTabs = "fireNavTabs";
@@ -236,8 +236,8 @@
 			var result = $();
 			var max = -1;
 			nav.options.sections.each(function () {
-				var elemY = $(this).get(0).getBoundingClientRect().top;
-				if (Math.floor(elemY) <= nav.options.offset) {
+				var elemY = $(this).get(0).getBoundingClientRect().top + nav.options.offset;
+				if (Math.floor(elemY) <= 0) {
 					if (elemY > max || max === -1) {
 						max = elemY;
 						result = $(this);
@@ -326,8 +326,10 @@
 			nav.$el.on('fireNav:jump:scroll', function () {
 				var current = nav.activeSection;
 				nav.updateActiveSection();
-				if (nav.activeSection !== current) {
-					nav.updatePageUrl('#' + nav.activeSection.get(0).id);
+				if (nav.activeSection !== current && nav.options.updateHash) {
+					if (nav.activeSection.length > 0) {
+						nav.updatePageUrl('#' + nav.activeSection.get(0).id);
+					}
 				}
 			});
 		},
